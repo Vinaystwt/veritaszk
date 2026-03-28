@@ -1,34 +1,60 @@
 "use client";
-
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useWallet } from "@demox-labs/aleo-wallet-adapter-react";
 import { WalletMultiButton } from "@demox-labs/aleo-wallet-adapter-reactui";
 
 export function Navbar() {
   const { publicKey, connected } = useWallet();
+  const pathname = usePathname();
 
   const truncate = (addr: string) =>
     addr ? addr.slice(0, 6) + "..." + addr.slice(-4) : "";
 
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b" style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(10,10,15,0.85)", backdropFilter: "blur(12px)" }}>
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold" style={{ color: "#00ff88" }}>Veritas</span>
-          <span className="text-xl font-bold text-white">ZK</span>
+    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(10,10,15,0.85)", backdropFilter: "blur(12px)" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "2px", textDecoration: "none" }}>
+          <span style={{ fontSize: "20px", fontWeight: 700, color: "#00ff88" }}>Veritas</span>
+          <span style={{ fontSize: "20px", fontWeight: 700, color: "white" }}>ZK</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8">
-          <Link href="/organization" className="text-sm text-gray-400 hover:text-white transition-colors">Organization</Link>
-          <Link href="/verify" className="text-sm text-gray-400 hover:text-white transition-colors">Verify</Link>
-          <Link href="/dashboard" className="text-sm text-gray-400 hover:text-white transition-colors">Dashboard</Link>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {[
+            { href: "/organization", label: "Organization" },
+            { href: "/verify", label: "Verify" },
+            { href: "/dashboard", label: "Dashboard" },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: isActive(href) ? 600 : 400,
+                color: isActive(href) ? "#00ff88" : "rgba(255,255,255,0.5)",
+                background: isActive(href) ? "rgba(0,255,136,0.06)" : "transparent",
+                border: isActive(href) ? "1px solid rgba(0,255,136,0.2)" : "1px solid transparent",
+                textDecoration: "none",
+                transition: "all 0.2s",
+              }}
+            >
+              {label}
+              {label === "Organization" && connected && (
+                <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#00ff88", marginLeft: "6px", verticalAlign: "middle" }} />
+              )}
+            </Link>
+          ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           {connected && publicKey ? (
-            <div className="flex items-center gap-2 px-4 py-2 rounded-lg border" style={{ borderColor: "#00ff88", background: "rgba(0,255,136,0.05)" }}>
-              <div className="w-2 h-2 rounded-full" style={{ background: "#00ff88" }} />
-              <span className="text-sm font-mono" style={{ color: "#00ff88" }}>{truncate(publicKey)}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 14px", borderRadius: "8px", border: "1px solid rgba(0,255,136,0.3)", background: "rgba(0,255,136,0.05)" }}>
+              <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#00ff88" }} />
+              <span style={{ fontSize: "13px", fontFamily: "monospace", color: "#00ff88" }}>{truncate(publicKey)}</span>
             </div>
           ) : (
             <WalletMultiButton style={{ background: "transparent", border: "1px solid #00ff88", color: "#00ff88", borderRadius: "8px", fontSize: "14px", padding: "8px 16px", fontFamily: "Space Grotesk, sans-serif" }} />
