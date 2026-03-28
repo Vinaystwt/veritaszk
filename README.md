@@ -139,6 +139,73 @@ Next.js 16 + TypeScript + Tailwind CSS
 
 ---
 
+
+## Privacy Model in Action
+
+The following shows actual output from the Leo contract demonstrating
+the privacy model. Amounts exist only inside private Records.
+The public mapping receives zero financial data.
+
+**Declaring a private asset (`leo run declare_asset 1u8 5000u64 1field`):**
+```
+➡️  Output
+
+ - {
+  owner: aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00.private,
+  asset_type: 1u8.private,
+  amount: 5000u64.private,
+  asset_id: 1field.private,
+  _nonce: 1089347752592445893799490357089215580889253368380903926629319695835121538137group.public,
+  _version: 1u8.public
+}
+```
+
+The `amount` field is marked `.private` — it exists only inside the encrypted
+`AssetRecord`. It does not appear in any mapping, finalize block, or public state.
+The `_nonce` is a cryptographic blinding factor — it reveals nothing about the amount.
+
+**Declaring a private liability (`leo run declare_liability 1u8 2000u64 1field`):**
+```
+➡️  Output
+
+ - {
+  owner: aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00.private,
+  liability_type: 1u8.private,
+  amount: 2000u64.private,
+  liability_id: 1field.private,
+  _nonce: 6455143737953259765406033392729023187788695499265001382919185992290328304668group.public,
+  _version: 1u8.public
+}
+```
+
+**Generating a solvency proof (2 assets totalling 5000, 1 liability of 1500):**
+```
+➡️  Output
+
+ - {
+  program_id: veritaszk.aleo,
+  function_name: generate_solvency_proof,
+  arguments: [
+    aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00,
+    1700000000u32,
+    2u8,
+    1u8,
+    3380839802934998011275142667485699624928343012989225456971976014915814340027field
+  ]
+}
+```
+
+The `solvency_proofs` mapping receives only:
+- `aleo1cdmu...` — the organization address (caller)
+- `1700000000u32` — the timestamp
+- `2u8` — asset count (2 non-sentinel slots used)
+- `1u8` — liability count (1 non-sentinel slot used)
+- `3380839...field` — a BHP256 commitment derived from asset IDs + timestamp
+
+No amounts. No asset types. No individual balances.
+The predicate `total_assets > total_liabilities` (5000 > 1500) was proved
+without revealing either value. The verifier learns only that it holds.
+
 ## Tech Stack
 
 | Layer | Technology |
