@@ -181,7 +181,7 @@ export default function DashboardPage() {
           <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)" }}>Built on Aleo · Wave 4 Buildathon</span>
           <div style={{ display: "flex", gap: "16px" }}>
             <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>GitHub</a>
-            <a href="https://explorer.aleo.org" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>View Contract</a>
+            <a href="https://testnet.explorer.provable.com/transaction/at1tkmfhd76ggsrx7p0srlhfc6hyjsqefskrtwd49y3elk4dga4sczse6r5c4" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>View Contract</a>
           </div>
         </div>
       </div>

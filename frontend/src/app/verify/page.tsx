@@ -177,7 +177,7 @@ function VerifyContent() {
                         <Copy size={13} />
                         {copied ? "Copied!" : "Share Verification"}
                       </button>
-                      <button onClick={() => window.open(`https://explorer.aleo.org/testnet/address/${input}`, "_blank")} style={{ flex: 1, padding: "10px 16px", borderRadius: "8px", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: "13px", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontFamily: "Space Grotesk, sans-serif" }}>
+                      <button onClick={() => window.open(`https://testnet.explorer.provable.com/address/${input}`, "_blank")} style={{ flex: 1, padding: "10px 16px", borderRadius: "8px", background: "transparent", color: "rgba(255,255,255,0.5)", fontSize: "13px", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontFamily: "Space Grotesk, sans-serif" }}>
                         <ExternalLink size={13} />
                         Aleo Explorer
                       </button>
@@ -258,7 +258,7 @@ function VerifyContent() {
           <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)" }}>Built on Aleo · Wave 4</span>
           <div style={{ display: "flex", gap: "16px" }}>
             <a href="https://github.com/Vinaystwt/veritaszk" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>GitHub</a>
-            <a href="https://explorer.aleo.org" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>Explorer</a>
+            <a href="https://testnet.explorer.provable.com/transaction/at1tkmfhd76ggsrx7p0srlhfc6hyjsqefskrtwd49y3elk4dga4sczse6r5c4" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>Explorer</a>
           </div>
         </div>
       </div>

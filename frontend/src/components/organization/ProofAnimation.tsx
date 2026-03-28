@@ -194,7 +194,7 @@ export function ProofAnimation({ isOpen, onComplete, walletAddress }: Props) {
                 <Copy size={16} />
                 {copied ? "Copied!" : "Share Your Verified Status"}
               </button>
-              <button onClick={() => window.open(`https://explorer.aleo.org/testnet/address/${walletAddress}`, "_blank")} style={{ padding: "14px", borderRadius: "10px", background: "transparent", color: "rgba(255,255,255,0.5)", fontWeight: 500, fontSize: "14px", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontFamily: "Space Grotesk, sans-serif" }}>
+              <button onClick={() => window.open(`https://testnet.explorer.provable.com/address/${walletAddress}`, "_blank")} style={{ padding: "14px", borderRadius: "10px", background: "transparent", color: "rgba(255,255,255,0.5)", fontWeight: 500, fontSize: "14px", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontFamily: "Space Grotesk, sans-serif" }}>
                 <ExternalLink size={14} />
                 View on Aleo Explorer
               </button>
