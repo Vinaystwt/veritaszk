@@ -17,6 +17,7 @@ export function Navbar() {
     <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(10,10,15,0.85)", backdropFilter: "blur(12px)" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: "2px", textDecoration: "none" }}>
+          <img src="/logo.svg" alt="VeritasZK" width={28} height={28} style={{ marginRight: "8px" }} />
           <span style={{ fontSize: "20px", fontWeight: 700, color: "#00ff88" }}>Veritas</span>
           <span style={{ fontSize: "20px", fontWeight: 700, color: "white" }}>ZK</span>
         </Link>

@@ -9,7 +9,7 @@
 **Live Demo:** https://veritaszk.vercel.app  
 **Network:** Aleo Testnet  
 **Contract:** `veritaszk.aleo`  
-**Buildathon:** Aleo Privacy Buildathon by AKINDO — Wave 4
+**Buildathon:** 
 
 ---
 
@@ -121,6 +121,8 @@ This is exactly what Aleo was designed for.
 └─────────────────────────────────────────────────────┘
 ```
 
+![VeritasZK Architecture](assets/architecture.svg)
+
 ### Contract
 
 **Program:** `veritaszk.aleo`  
@@ -131,9 +133,9 @@ This is exactly what Aleo was designed for.
 Deployed using Leo built from source (commit e773034) against snarkVM 4.6.0
 — the first community deployment after the ConsensusVersion V14 upgrade.
 
-## Wave 4 Changelog
+## Changelog
 
-**First submission — built entirely in Wave 4:**
+**Initial release:**
 - ✅ Complete Leo smart contract — 6 transitions, full privacy model
 - ✅ Organization portal — private asset/liability declaration + proof generation
 - ✅ Verifier portal — public solvency verification, shareable deep-links
@@ -147,14 +149,15 @@ Deployed using Leo built from source (commit e773034) against snarkVM 4.6.0
 
 ---
 
-## Wave 5 Roadmap
+## Roadmap
 
-- Multi-party proof aggregation (prove across multiple wallets)
-- Time-locked proofs (auto-expire after N blocks)
-- Selective disclosure mode (reveal specific assets to specific verifiers)
-- npm SDK — `veritaszk-sdk` for third-party integration
-- Mainnet deployment
-- Compliance API for regulated entities
+- **Multi-wallet proof aggregation** — prove solvency across multiple Aleo addresses in a single unified proof
+- **Time-locked proof expiry** — proofs auto-invalidate after a configurable number of blocks, ensuring freshness
+- **Selective disclosure** — reveal specific asset types to specific verifier addresses via private record transfer, enabling compliance workflows without full disclosure
+- **veritaszk-sdk v0.2.0** — batch verification, webhook support, React hooks package (`use-veritaszk`)
+- **Verification API** — REST endpoint for organizations to embed real-time solvency status in their own dashboards
+- **Proof history timeline** — on-chain audit trail of all proof generations and revocations per organization
+
 
 ---
 

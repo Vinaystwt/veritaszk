@@ -5,7 +5,11 @@ import { Navbar } from "@/components/Navbar";
 
 export const metadata: Metadata = {
   title: "VeritasZK — Prove Solvency. Reveal Nothing.",
-  description: "The first zero-knowledge solvency proof on Aleo. Verify any organization's financial health without seeing a single number.",
+  description: "The first zero-knowledge solvency proof on Aleo. Verify any organization\'s financial health without seeing a single number.",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

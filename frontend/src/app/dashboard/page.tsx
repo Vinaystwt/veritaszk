@@ -178,7 +178,7 @@ export default function DashboardPage() {
         {/* Footer */}
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: "80px", paddingTop: "32px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
           <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)" }}>VeritasZK — Prove Solvency. Reveal Nothing.</span>
-          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)" }}>Built on Aleo · Wave 4 Buildathon</span>
+          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)" }}>Built on Aleo · </span>
           <div style={{ display: "flex", gap: "16px" }}>
             <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>GitHub</a>
             <a href="https://testnet.explorer.provable.com/transaction/at1tkmfhd76ggsrx7p0srlhfc6hyjsqefskrtwd49y3elk4dga4sczse6r5c4" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>View Contract</a>

@@ -67,7 +67,7 @@ export default function Home() {
 
         <motion.div initial="hidden" animate="visible" custom={0} variants={fadeUp} style={{ marginBottom: "24px" }}>
           <span style={{ display: "inline-block", padding: "6px 16px", borderRadius: "100px", border: "1px solid rgba(0,255,136,0.3)", background: "rgba(0,255,136,0.05)", color: "#00ff88", fontSize: "13px", fontWeight: 500, letterSpacing: "0.05em" }}>
-            Built on Aleo · Zero Knowledge · Wave 4
+            Built on Aleo · Zero Knowledge 
           </span>
         </motion.div>
 
@@ -159,7 +159,7 @@ export default function Home() {
       <footer style={{ position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.06)", padding: "32px 24px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
           <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)" }}>VeritasZK — Prove Solvency. Reveal Nothing.</span>
-          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)" }}>Built on Aleo · Wave 4 Buildathon</span>
+          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)" }}>Built on Aleo · </span>
           <div style={{ display: "flex", gap: "16px" }}>
             <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>GitHub</a>
             <a href="https://testnet.explorer.provable.com/transaction/at1tkmfhd76ggsrx7p0srlhfc6hyjsqefskrtwd49y3elk4dga4sczse6r5c4" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "rgba(255,255,255,0.3)", textDecoration: "none" }}>View Contract</a>
