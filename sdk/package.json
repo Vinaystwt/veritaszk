@@ -1,0 +1,33 @@
+{
+  "name": "veritaszk-sdk",
+  "version": "0.1.0",
+  "description": "Zero-knowledge solvency verification SDK for Aleo. Verify any organization's proof of solvency without seeing their financial data.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "aleo",
+    "zero-knowledge",
+    "zk",
+    "solvency",
+    "proof-of-reserves",
+    "privacy",
+    "leo"
+  ],
+  "author": "VeritasZK",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vinaystwt/veritaszk"
+  },
+  "homepage": "https://veritaszk.vercel.app",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.0"
+  }
+}

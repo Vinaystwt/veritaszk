@@ -1,4 +1,7 @@
-# VeritasZK — Prove Solvency. Reveal Nothing.
+# VeritasZK
+
+[![npm](https://img.shields.io/npm/v/veritaszk-sdk)](https://www.npmjs.com/package/veritaszk-sdk)
+ — Prove Solvency. Reveal Nothing.
 
 > The first zero-knowledge solvency proof system on Aleo.  
 > Organizations prove they hold more than they owe — without revealing a single number.
@@ -205,6 +208,20 @@ The `solvency_proofs` mapping receives only:
 No amounts. No asset types. No individual balances.
 The predicate `total_assets > total_liabilities` (5000 > 1500) was proved
 without revealing either value. The verifier learns only that it holds.
+
+
+## SDK
+```bash
+npm install veritaszk-sdk
+```
+```typescript
+import { VeritasZK } from "veritaszk-sdk"
+const client = new VeritasZK({ network: "testnet" })
+const result = await client.verifySolvency("aleo1abc...")
+console.log(result.isSolvent) // true — no amounts revealed
+```
+
+[View on npm →](https://www.npmjs.com/package/veritaszk-sdk)
 
 ## Tech Stack
 
