@@ -1,6 +1,17 @@
+# Environment
 .env
 .env.local
-node_modules/
-build/
-.aleo/
 *.key
+
+# Leo build artifacts
+veritaszk/build/
+veritaszk/.aleo/
+veritaszk/outputs/
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/.vercel/
+
+# macOS
+.DS_Store
