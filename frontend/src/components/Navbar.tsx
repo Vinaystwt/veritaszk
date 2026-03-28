@@ -1,15 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useWallet } from "@demox-labs/aleo-wallet-adapter-react";
-import { WalletMultiButton } from "@demox-labs/aleo-wallet-adapter-reactui";
+import { useWallet } from "@/context/WalletContext";
+import { ConnectButton } from "@/components/ConnectButton";
 
 export function Navbar() {
-  const { publicKey, connected } = useWallet();
+  const { wallet } = useWallet();
   const pathname = usePathname();
-
-  const truncate = (addr: string) =>
-    addr ? addr.slice(0, 6) + "..." + addr.slice(-4) : "";
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -44,23 +41,14 @@ export function Navbar() {
               }}
             >
               {label}
-              {label === "Organization" && connected && (
+              {label === "Organization" && wallet && (
                 <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#00ff88", marginLeft: "6px", verticalAlign: "middle" }} />
               )}
             </Link>
           ))}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {connected && publicKey ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "7px 14px", borderRadius: "8px", border: "1px solid rgba(0,255,136,0.3)", background: "rgba(0,255,136,0.05)" }}>
-              <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#00ff88" }} />
-              <span style={{ fontSize: "13px", fontFamily: "monospace", color: "#00ff88" }}>{truncate(publicKey)}</span>
-            </div>
-          ) : (
-            <WalletMultiButton style={{ background: "transparent", border: "1px solid #00ff88", color: "#00ff88", borderRadius: "8px", fontSize: "14px", padding: "8px 16px", fontFamily: "Space Grotesk, sans-serif" }} />
-          )}
-        </div>
+        <ConnectButton />
       </div>
     </nav>
   );

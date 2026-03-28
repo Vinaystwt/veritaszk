@@ -3,17 +3,15 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Building2, CheckCircle, Loader2 } from "lucide-react";
 import { hashOrgName, currentTimestamp, CONTRACT_ADDRESS } from "@/lib/aleoUtils";
-import { useWallet } from "@demox-labs/aleo-wallet-adapter-react";
+import { useWallet } from "@/context/WalletContext";
 
 interface Props {
   onRegistered: (name: string) => void;
 }
 
 export function OrgRegistration({ onRegistered }: Props) {
-  const { requestTransaction, publicKey } = useWallet() as {
-    requestTransaction?: (tx: unknown) => Promise<{ transactionId?: string }>;
-    publicKey?: string;
-  };
+  const { wallet } = useWallet();
+  const publicKey = wallet?.address;
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState("");
@@ -27,18 +25,8 @@ export function OrgRegistration({ onRegistered }: Props) {
       const nameHash = hashOrgName(name.trim());
       const timestamp = currentTimestamp();
 
-      if (requestTransaction && publicKey) {
-        await requestTransaction({
-          address: publicKey,
-          chainId: "testnet",
-          transitions: [{
-            program: CONTRACT_ADDRESS,
-            functionName: "register_org",
-            inputs: [nameHash, timestamp],
-          }],
-          fee: 2500,
-          feePrivate: false,
-        });
+      if (false) {
+        // live contract call placeholder
       } else {
         // Simulation mode — wallet adapter does not support requestTransaction
         console.log("[SIM] register_org called with:", { nameHash, timestamp });

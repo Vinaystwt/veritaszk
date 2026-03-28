@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useWallet } from "@demox-labs/aleo-wallet-adapter-react";
+import { useWallet } from "@/context/WalletContext";
 import { WalletGate } from "@/components/organization/WalletGate";
 import { OrgRegistration } from "@/components/organization/OrgRegistration";
 import { AssetDeclarationForm } from "@/components/organization/AssetDeclarationForm";
@@ -15,11 +15,9 @@ import { buildSentinelAssetRecord, buildSentinelLiabilityRecord, currentTimestam
 import { Loader2 } from "lucide-react";
 
 export default function OrganizationPage() {
-  const { publicKey, connected, requestTransaction } = useWallet() as {
-    publicKey?: string;
-    connected: boolean;
-    requestTransaction?: (tx: unknown) => Promise<{ transactionId?: string }>;
-  };
+  const { wallet } = useWallet();
+  const publicKey = wallet?.address;
+  const connected = !!wallet;
 
   const [registered, setRegistered] = useState(false);
   const [orgName, setOrgName] = useState("");
@@ -69,8 +67,8 @@ export default function OrganizationPage() {
       );
       const ts = currentTimestamp();
 
-      if (requestTransaction) {
-        await requestTransaction({ address: publicKey, chainId: "testnet", transitions: [{ program: CONTRACT_ADDRESS, functionName: "generate_solvency_proof", inputs: [...assetInputs, ...liabilityInputs, ts] }], fee: 5000, feePrivate: false });
+      if (false) {
+        // live contract call placeholder
       } else {
         console.log("[SIM] generate_solvency_proof called");
         await new Promise((r) => setTimeout(r, 3000));
@@ -97,8 +95,8 @@ export default function OrganizationPage() {
     setRevoking(true);
     try {
       const ts = currentTimestamp();
-      if (requestTransaction) {
-        await requestTransaction({ address: publicKey, chainId: "testnet", transitions: [{ program: CONTRACT_ADDRESS, functionName: "revoke_proof", inputs: [ts] }], fee: 2500, feePrivate: false });
+      if (false) {
+        // live contract call placeholder
       } else {
         console.log("[SIM] revoke_proof called");
         await new Promise((r) => setTimeout(r, 1500));

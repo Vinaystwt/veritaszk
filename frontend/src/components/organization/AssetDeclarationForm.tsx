@@ -3,7 +3,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2, CheckCircle } from "lucide-react";
 import { generateFieldId, currentTimestamp, ASSET_LABELS, ASSET_COLORS, CONTRACT_ADDRESS } from "@/lib/aleoUtils";
-import { useWallet } from "@demox-labs/aleo-wallet-adapter-react";
+import { useWallet } from "@/context/WalletContext";
 
 export interface DeclaredAsset {
   id: string;
@@ -18,10 +18,8 @@ interface Props {
 }
 
 export function AssetDeclarationForm({ onAssetDeclared }: Props) {
-  const { requestTransaction, publicKey } = useWallet() as {
-    requestTransaction?: (tx: unknown) => Promise<{ transactionId?: string }>;
-    publicKey?: string;
-  };
+  const { wallet } = useWallet();
+  const publicKey = wallet?.address;
   const [assetType, setAssetType] = useState(1);
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -37,18 +35,8 @@ export function AssetDeclarationForm({ onAssetDeclared }: Props) {
       const assetId = generateFieldId();
       const ts = currentTimestamp();
 
-      if (requestTransaction && publicKey) {
-        await requestTransaction({
-          address: publicKey,
-          chainId: "testnet",
-          transitions: [{
-            program: CONTRACT_ADDRESS,
-            functionName: "declare_asset",
-            inputs: [`${assetType}u8`, `${amt}u64`, assetId],
-          }],
-          fee: 2000,
-          feePrivate: false,
-        });
+      if (false) {
+        // live contract call placeholder
       } else {
         console.log("[SIM] declare_asset called with:", { assetType, amt, assetId });
         await new Promise((r) => setTimeout(r, 1500));
