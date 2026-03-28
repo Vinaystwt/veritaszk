@@ -283,7 +283,7 @@ leo run declare_asset 1u8 1000u64 1field
 
 **Program:** `veritaszk.aleo`  
 **Network:** Aleo Testnet  
-**Deployment:** Pending testnet faucet (17.73 credits required)
+**Deployment:** ✅ Live on Aleo Testnet
 
 Key transition signatures:
 ```
@@ -313,6 +313,7 @@ fn generate_solvency_proof(
 - ✅ Multi-token support: credits.aleo, USDCx, USAD
 - ✅ Simulation mode — full demo journey works without testnet dependency
 - ✅ Deployed: https://veritaszk.vercel.app
+- ✅ Contract live on Aleo Testnet: `at1tkmfhd76ggsrx7p0srlhfc6hyjsqefskrtwd49y3elk4dga4sczse6r5c4`
 
 ---
 
