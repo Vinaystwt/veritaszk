@@ -9,8 +9,6 @@
 **Live Demo:** https://veritaszk.vercel.app  
 **Network:** Aleo Testnet  
 **Contract:** `veritaszk.aleo`  
-**Buildathon:** 
-
 ---
 
 ## The Problem
@@ -78,6 +76,36 @@ mathematically hidden.
 
 ---
 
+## SDK
+
+Integrate VeritasZK verification into any frontend in 3 lines of code.
+```bash
+npm install veritaszk-sdk
+```
+```typescript
+import { VeritasZK } from 'veritaszk-sdk'
+
+const client = new VeritasZK({ network: 'testnet' })
+
+// Verify an organization's solvency
+const result = await client.verifySolvency('aleo1abc...')
+console.log(result.isSolvent)          // true — no amounts revealed
+console.log(result.verificationCount)  // times verified on-chain
+
+// One-line convenience function
+import { verifySolvency } from 'veritaszk-sdk'
+const { isSolvent } = await verifySolvency('aleo1abc...')
+```
+
+**What the SDK does NOT return — by design:**
+- Asset amounts or liability amounts
+- Asset types or compositions
+- Any data that could reveal financial strategy
+
+This is guaranteed by the underlying Leo contract — the data does not exist in any queryable public state.
+
+[View on npm →](https://www.npmjs.com/package/veritaszk-sdk)
+
 ## Why Only Aleo Makes This Possible
 
 | Chain | Private State | Public Verifiability | Verdict |
@@ -95,31 +123,6 @@ This is exactly what Aleo was designed for.
 ---
 
 ## Architecture
-```
-┌─────────────────────────────────────────────────────┐
-│                   PRIVATE LAYER                      │
-│  AssetRecord { owner, asset_type, amount, id }      │
-│  LiabilityRecord { owner, liability_type, amount }  │
-│  → Encrypted on-chain. Owner-only access.           │
-└─────────────────┬───────────────────────────────────┘
-                  │ consumed by
-┌─────────────────▼───────────────────────────────────┐
-│              COMPUTATION LAYER                       │
-│  generate_solvency_proof transition                 │
-│  → Sums assets. Sums liabilities.                   │
-│  → Asserts: total_assets > total_liabilities        │
-│  → Computes proof_nonce via BHP256 hash             │
-│  → Executes OFF-CHAIN (Aleo native)                 │
-└─────────────────┬───────────────────────────────────┘
-                  │ writes only
-┌─────────────────▼───────────────────────────────────┐
-│                PUBLIC LAYER                          │
-│  solvency_proofs mapping:                           │
-│  address → { is_solvent: bool, timestamp,           │
-│              proof_nonce, asset_count }             │
-│  → No amounts. No identities. Publicly verifiable.  │
-└─────────────────────────────────────────────────────┘
-```
 
 ![VeritasZK Architecture](assets/architecture.svg)
 
@@ -133,6 +136,25 @@ This is exactly what Aleo was designed for.
 Deployed using Leo built from source (commit e773034) against snarkVM 4.6.0
 — the first community deployment after the ConsensusVersion V14 upgrade.
 
+## Local Setup
+```bash
+# Clone
+git clone https://github.com/Vinaystwt/veritaszk
+cd veritaszk
+
+# Frontend
+cd frontend
+npm install
+cp .env.example .env.local
+npm run dev
+# → http://localhost:3000
+
+# Leo contract (requires Leo CLI)
+cd ../veritaszk
+leo build
+leo run declare_asset 1u8 1000u64 1field
+```
+
 ## Changelog
 
 **Initial release:**
@@ -143,6 +165,10 @@ Deployed using Leo built from source (commit e773034) against snarkVM 4.6.0
 - ✅ ZK proof animation — full-screen generation sequence with matrix rain + particle burst
 - ✅ Wallet integration — Leo Wallet + Puzzle Wallet
 - ✅ Multi-token support: credits.aleo, USDCx, USAD
+- ✅ npm SDK — `veritaszk-sdk@0.1.0` published — verify solvency in 3 lines of code
+- ✅ Inline privacy comments in Leo contract — every privacy-critical line annotated
+- ✅ `leo run` output in README — `.private` suffix confirms amounts sealed in Records
+- ✅ First deployment after ConsensusVersion V14 upgrade — solution shared with community
 - ✅ Simulation mode — full demo journey works without testnet dependency
 - ✅ Deployed: https://veritaszk.vercel.app
 - ✅ Contract live on Aleo Testnet: `at1tkmfhd76ggsrx7p0srlhfc6hyjsqefskrtwd49y3elk4dga4sczse6r5c4`
