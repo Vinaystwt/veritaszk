@@ -1,62 +1,73 @@
 "use client";
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { ConnectedWallet, connectPuzzle, connectLeo, disconnectPuzzle, detectWallets } from "@/lib/wallets";
 
 interface WalletContextType {
-  address: string | null;
-  connected: boolean;
+  wallet: ConnectedWallet | null;
   connecting: boolean;
-  connect: (walletName?: string) => Promise<void>;
+  puzzleAvailable: boolean;
+  leoAvailable: boolean;
+  error: string | null;
+  connectWithPuzzle: () => Promise<void>;
+  connectWithLeo: () => Promise<void>;
   disconnect: () => void;
-  select: (walletName: string) => void;
 }
 
 const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [address, setAddress] = useState<string | null>(null);
-  const [connected, setConnected] = useState(false);
+  const [wallet, setWallet] = useState<ConnectedWallet | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [puzzleAvailable, setPuzzleAvailable] = useState(false);
+  const [leoAvailable, setLeoAvailable] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const connect = async (walletName?: string) => {
-    setConnecting(true);
+  useEffect(() => {
+    detectWallets().then(({ puzzle, leo }) => {
+      setPuzzleAvailable(puzzle);
+      setLeoAvailable(leo);
+    });
+  }, []);
+
+  const connectWithPuzzle = async () => {
     try {
-      // Try direct window injection
-      const leo = (window as any).leoWallet;
-      const puzzle = (window as any).puzzle?.puzzleWalletClient;
+      setConnecting(true);
+      setError(null);
+      const connected = await connectPuzzle();
+      setWallet(connected);
+    } catch (err: unknown) {
+      console.error("Puzzle connection failed:", err);
+      setError(err instanceof Error ? err.message : "Puzzle Wallet connection failed");
+    } finally {
+      setConnecting(false);
+    }
+  };
 
-      if (walletName === "Leo Wallet" && leo) {
-        await leo.connect("testnet3");
-        await new Promise(r => setTimeout(r, 500));
-        const key = leo.publicKey;
-        if (key) { setAddress(String(key)); setConnected(true); return; }
-      }
-
-      if (walletName === "Puzzle Wallet" && puzzle) {
-        await puzzle.connect.mutate();
-        await new Promise(r => setTimeout(r, 1000));
-        const result = await puzzle.getSelectedAccount.query();
-        const addr = result?.account?.address ?? result?.address;
-        if (addr) { setAddress(String(addr)); setConnected(true); return; }
-      }
-
-      throw new Error("Could not connect wallet");
-    } catch (err) {
-      console.error("Wallet connection failed:", err);
-      throw err;
+  const connectWithLeo = async () => {
+    try {
+      setConnecting(true);
+      setError(null);
+      const connected = await connectLeo();
+      setWallet(connected);
+    } catch (err: unknown) {
+      console.error("Leo connection failed:", err);
+      setError("Leo Wallet: unlock your wallet and refresh the page, then try connecting again");
     } finally {
       setConnecting(false);
     }
   };
 
   const disconnect = () => {
-    setAddress(null);
-    setConnected(false);
+    if (wallet?.walletType === "puzzle") disconnectPuzzle();
+    setWallet(null);
+    setError(null);
   };
 
-  const select = (_walletName: string) => {};
-
   return (
-    <WalletContext.Provider value={{ address, connected, connecting, connect, disconnect, select }}>
+    <WalletContext.Provider value={{
+      wallet, connecting, puzzleAvailable, leoAvailable, error,
+      connectWithPuzzle, connectWithLeo, disconnect,
+    }}>
       {children}
     </WalletContext.Provider>
   );

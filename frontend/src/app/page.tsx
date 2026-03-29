@@ -81,7 +81,7 @@ export default function Home() {
         </motion.p>
 
         <motion.div initial="hidden" animate="visible" custom={3} variants={fadeUp} style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center", marginBottom: "32px" }}>
-          <Link href="/organization" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "14px 32px", borderRadius: "10px", background: "#00ff88", color: "#0a0a0f", fontWeight: 600, fontSize: "16px", textDecoration: "none" }}
+          <Link href="/organization?demo=true" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "14px 32px", borderRadius: "10px", background: "#00ff88", color: "#0a0a0f", fontWeight: 600, fontSize: "16px", textDecoration: "none" }}
             onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")}
             onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
           >

@@ -7,7 +7,8 @@ import { Shield } from "lucide-react";
 import { ConnectButton } from "@/components/ConnectButton";
 
 function WalletGateInner({ children }: { children: React.ReactNode }) {
-  const { connected } = useWallet();
+  const { wallet } = useWallet();
+  const connected = !!wallet;
   const searchParams = useSearchParams();
   const demoMode = searchParams.get("demo") === "true";
 

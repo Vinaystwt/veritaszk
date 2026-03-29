@@ -10,7 +10,8 @@ interface Props {
 }
 
 export function OrgRegistration({ onRegistered }: Props) {
-  const { address: publicKey } = useWallet();
+  const { wallet } = useWallet();
+  const publicKey = wallet?.address ?? null;
   const [name, setName] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState("");

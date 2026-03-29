@@ -15,7 +15,9 @@ import { buildSentinelAssetRecord, buildSentinelLiabilityRecord, currentTimestam
 import { Loader2 } from "lucide-react";
 
 export default function OrganizationPage() {
-  const { address: publicKey, connected: walletConnected } = useWallet();
+  const { wallet, connecting: _connecting } = useWallet();
+  const publicKey = wallet?.address ?? null;
+  const walletConnected = !!wallet;
   const [demoMode, setDemoMode] = useState(false);
   useEffect(() => {
     const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";

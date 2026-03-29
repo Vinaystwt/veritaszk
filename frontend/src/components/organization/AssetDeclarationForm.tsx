@@ -18,7 +18,8 @@ interface Props {
 }
 
 export function AssetDeclarationForm({ onAssetDeclared }: Props) {
-  const { address: publicKey } = useWallet();
+  const { wallet } = useWallet();
+  const publicKey = wallet?.address ?? null;
   const [assetType, setAssetType] = useState(1);
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
