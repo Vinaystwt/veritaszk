@@ -15,9 +15,23 @@ import { buildSentinelAssetRecord, buildSentinelLiabilityRecord, currentTimestam
 import { Loader2 } from "lucide-react";
 
 export default function OrganizationPage() {
-  const { wallet } = useWallet();
-  const publicKey = wallet?.address;
-  const connected = !!wallet;
+  const { address: publicKey, connected: walletConnected } = useWallet();
+  const [demoMode, setDemoMode] = useState(false);
+  useEffect(() => {
+    const isDemo = new URLSearchParams(window.location.search).get("demo") === "true";
+    setDemoMode(isDemo);
+    if (isDemo) {
+      // Reset state for fresh demo — clear localStorage so registration shows
+      localStorage.removeItem("veritaszk_org_name");
+      localStorage.removeItem("veritaszk_org_registered");
+      localStorage.removeItem("veritaszk_proof_active");
+      setRegistered(false);
+      setOrgName("");
+      setAssets([]);
+      setLiabilities([]);
+    }
+  }, []);
+  const connected = walletConnected || demoMode;
 
   const [registered, setRegistered] = useState(false);
   const [orgName, setOrgName] = useState("");
@@ -44,11 +58,15 @@ export default function OrganizationPage() {
   const handleRegistered = (name: string) => {
     setOrgName(name);
     setRegistered(true);
-    if (publicKey) localStorage.setItem("veritaszk_wallet_address", publicKey);
+    const addr = publicKey ?? "aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00";
+    localStorage.setItem("veritaszk_wallet_address", addr);
+    localStorage.setItem("veritaszk_org_name", name);
+    localStorage.setItem("veritaszk_org_registered", "true");
   };
 
   const handleGenerateProof = async () => {
-    if (!publicKey) return;
+    const effectiveKey = publicKey ?? "aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00";
+    if (!effectiveKey) return;
     setGeneratingProof(true);
     setShowProofAnimation(true);
     try {
@@ -58,12 +76,12 @@ export default function OrganizationPage() {
       while (liabilitySlots.length < 5) liabilitySlots.push({ id: "sentinel", liability_type: 0, amount: 0, liability_id: "0field", timestamp: "0u32" });
 
       const assetInputs = assetSlots.map((a) =>
-        a.id === "sentinel" ? buildSentinelAssetRecord(publicKey)
-          : `{owner: ${publicKey}.private, asset_type: ${a.asset_type}u8.private, amount: ${a.amount}u64.private, asset_id: ${a.asset_id}.private, _nonce: 0group.public, _version: 1u8.public}`
+        a.id === "sentinel" ? buildSentinelAssetRecord(effectiveKey)
+          : `{owner: ${effectiveKey}.private, asset_type: ${a.asset_type}u8.private, amount: ${a.amount}u64.private, asset_id: ${a.asset_id}.private, _nonce: 0group.public, _version: 1u8.public}`
       );
       const liabilityInputs = liabilitySlots.map((l) =>
-        l.id === "sentinel" ? buildSentinelLiabilityRecord(publicKey)
-          : `{owner: ${publicKey}.private, liability_type: ${(l as DeclaredLiability).liability_type}u8.private, amount: ${l.amount}u64.private, liability_id: ${(l as DeclaredLiability).liability_id}.private, _nonce: 0group.public, _version: 1u8.public}`
+        l.id === "sentinel" ? buildSentinelLiabilityRecord(effectiveKey)
+          : `{owner: ${effectiveKey}.private, liability_type: ${(l as DeclaredLiability).liability_type}u8.private, amount: ${l.amount}u64.private, liability_id: ${(l as DeclaredLiability).liability_id}.private, _nonce: 0group.public, _version: 1u8.public}`
       );
       const ts = currentTimestamp();
 
@@ -87,7 +105,7 @@ export default function OrganizationPage() {
     localStorage.setItem("veritaszk_proof_active", "true");
     localStorage.setItem("veritaszk_proof_nonce", nonce);
     localStorage.setItem("veritaszk_proof_timestamp", String(Math.floor(Date.now() / 1000)));
-    if (publicKey) localStorage.setItem("veritaszk_wallet_address", publicKey);
+    localStorage.setItem("veritaszk_wallet_address", publicKey ?? "aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00");
   }, [publicKey]);
 
   const handleRevoke = async () => {
@@ -176,9 +194,9 @@ export default function OrganizationPage() {
         isOpen={showProofAnimation}
         onComplete={(nonce, ts) => {
           handleProofComplete(nonce, ts);
-          setTimeout(() => setShowProofAnimation(false), 5000);
+          // Auto-close removed — user closes manually
         }}
-        walletAddress={publicKey || ""}
+        walletAddress={publicKey || (typeof window !== "undefined" ? localStorage.getItem("veritaszk_wallet_address") : "") || ""}
       />
 
       <style>{`

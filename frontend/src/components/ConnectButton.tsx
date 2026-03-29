@@ -5,18 +5,18 @@ import { useWallet } from "@/context/WalletContext";
 import { WalletModal } from "@/components/WalletModal";
 
 export function ConnectButton() {
-  const { wallet, disconnect } = useWallet();
+  const { address, connected, disconnect } = useWallet();
   const [showModal, setShowModal] = useState(false);
 
-  if (wallet) {
+  if (connected && address) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#00ff88" }} />
         <span style={{ color: "#00ff88", fontSize: "13px", fontFamily: "monospace" }}>
-          {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+          {address.slice(0, 6)}...{address.slice(-4)}
         </span>
         <button
-          onClick={disconnect}
+          onClick={() => disconnect()}
           style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px", background: "none", border: "none", cursor: "pointer", fontFamily: "Space Grotesk, sans-serif", marginLeft: "4px" }}
         >
           disconnect

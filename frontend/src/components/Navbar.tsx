@@ -5,7 +5,7 @@ import { useWallet } from "@/context/WalletContext";
 import { ConnectButton } from "@/components/ConnectButton";
 
 export function Navbar() {
-  const { wallet } = useWallet();
+  const { connected } = useWallet();
   const pathname = usePathname();
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
@@ -41,7 +41,7 @@ export function Navbar() {
               }}
             >
               {label}
-              {label === "Organization" && wallet && (
+              {label === "Organization" && connected && (
                 <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#00ff88", marginLeft: "6px", verticalAlign: "middle" }} />
               )}
             </Link>

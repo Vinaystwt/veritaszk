@@ -18,8 +18,7 @@ interface Props {
 }
 
 export function LiabilityDeclarationForm({ onLiabilityDeclared }: Props) {
-  const { wallet } = useWallet();
-  const publicKey = wallet?.address;
+  const { address: publicKey } = useWallet();
   const [liabilityType, setLiabilityType] = useState(1);
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
