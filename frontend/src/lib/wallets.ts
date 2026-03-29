@@ -82,10 +82,49 @@ export function isLeoAvailable(): boolean {
   return typeof window !== "undefined" && (!!(window as any).leoWallet || !!(window as any).leo);
 }
 
-export async function detectWallets(): Promise<{ puzzle: boolean; leo: boolean }> {
+
+// ─── SHIELD WALLET ───────────────────────────────────────────────────────────
+
+export function isShieldAvailable(): boolean {
+  return typeof window !== "undefined" && (
+    !!(window as any).shield ||
+    !!(window as any).shieldWallet ||
+    !!(window as any).aleo?.shieldWallet
+  );
+}
+
+export async function connectShield(): Promise<ConnectedWallet> {
+  const shield = (window as any).shield;
+  if (!shield) throw new Error("Shield Wallet not detected");
+
+  // Shield uses: connect(network, decryptPermission, programs)
+  const response = await shield.connect(
+    "testnet",
+    "AutoDecrypt",
+    ["veritaszk.aleo"]
+  );
+
+  // Response may contain address directly or via publicKey
+  const address = response?.address ??
+                  response?.publicKey ??
+                  shield.publicKey ??
+                  response?.account?.address;
+
+  if (address) return { address: String(address), walletType: "puzzle" };
+
+  // If no address in response, poll for publicKey
+  await new Promise(resolve => setTimeout(resolve, 500));
+  const key = shield.publicKey;
+  if (key) return { address: String(key), walletType: "puzzle" };
+
+  throw new Error("Could not retrieve address from Shield Wallet");
+}
+
+export async function detectWallets(): Promise<{ puzzle: boolean; leo: boolean; shield: boolean }> {
   await new Promise(resolve => setTimeout(resolve, 1000));
   return {
     puzzle: isPuzzleAvailable(),
     leo: isLeoAvailable(),
+    shield: isShieldAvailable(),
   };
 }

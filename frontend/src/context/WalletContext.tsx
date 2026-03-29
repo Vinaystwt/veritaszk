@@ -1,15 +1,17 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { ConnectedWallet, connectPuzzle, connectLeo, disconnectPuzzle, detectWallets } from "@/lib/wallets";
+import { ConnectedWallet, connectPuzzle, connectLeo, connectShield, disconnectPuzzle, detectWallets } from "@/lib/wallets";
 
 interface WalletContextType {
   wallet: ConnectedWallet | null;
   connecting: boolean;
   puzzleAvailable: boolean;
   leoAvailable: boolean;
+  shieldAvailable: boolean;
   error: string | null;
   connectWithPuzzle: () => Promise<void>;
   connectWithLeo: () => Promise<void>;
+  connectWithShield: () => Promise<void>;
   disconnect: () => void;
 }
 
@@ -20,12 +22,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [connecting, setConnecting] = useState(false);
   const [puzzleAvailable, setPuzzleAvailable] = useState(false);
   const [leoAvailable, setLeoAvailable] = useState(false);
+  const [shieldAvailable, setShieldAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    detectWallets().then(({ puzzle, leo }) => {
+    detectWallets().then(({ puzzle, leo, shield }) => {
       setPuzzleAvailable(puzzle);
       setLeoAvailable(leo);
+      setShieldAvailable(shield);
     });
   }, []);
 
@@ -57,6 +61,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const connectWithShield = async () => {
+    try {
+      setConnecting(true);
+      setError(null);
+      const connected = await connectShield();
+      setWallet(connected);
+    } catch (err: unknown) {
+      console.error("Shield connection failed:", err);
+      setError(err instanceof Error ? err.message : "Shield Wallet connection failed");
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   const disconnect = () => {
     if (wallet?.walletType === "puzzle") disconnectPuzzle();
     setWallet(null);
@@ -65,8 +83,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   return (
     <WalletContext.Provider value={{
-      wallet, connecting, puzzleAvailable, leoAvailable, error,
-      connectWithPuzzle, connectWithLeo, disconnect,
+      wallet, connecting, puzzleAvailable, leoAvailable, shieldAvailable, error,
+      connectWithPuzzle, connectWithLeo, connectWithShield, disconnect,
     }}>
       {children}
     </WalletContext.Provider>
