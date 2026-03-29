@@ -35,8 +35,27 @@ export function LiabilityDeclarationForm({ onLiabilityDeclared }: Props) {
       const liabilityId = generateFieldId();
       const ts = currentTimestamp();
 
-      if (false) {
-        // live contract call placeholder
+      const puzzleClient = (window as any).aleo?.puzzleWalletClient;
+      if (puzzleClient && publicKey) {
+        const puzzleWallet = (window as any).aleo.puzzleWalletClient;
+        const response = await puzzleWallet.requestCreateEvent.mutate({
+          method: "requestCreateEvent",
+          params: {
+            address: publicKey,
+            network: "AleoTestnet",
+            type: "Execute",
+            programId: "veritaszk.aleo",
+            functionId: "declare_liability",
+            fee: 0.002,
+            inputs: [
+              `${liabilityType}u8`,
+              `${amt}u64`,
+              `${liabilityId}`,
+            ],
+          },
+        });
+        console.log("[LIVE] declare_liability response:", response);
+        if (response?.error) throw new Error(response.error);
       } else {
         console.log("[SIM] declare_liability called with:", { liabilityType, amt, liabilityId });
         await new Promise((r) => setTimeout(r, 1500));

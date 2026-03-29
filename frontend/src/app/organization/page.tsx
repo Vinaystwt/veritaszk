@@ -67,7 +67,7 @@ export default function OrganizationPage() {
   };
 
   const handleGenerateProof = async () => {
-    const effectiveKey = publicKey ?? "aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00";
+    const effectiveKey = publicKey ?? (typeof window !== "undefined" ? localStorage.getItem("veritaszk_wallet_address") : null) ?? "aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00";
     if (!effectiveKey) return;
     setGeneratingProof(true);
     setShowProofAnimation(true);
@@ -87,8 +87,23 @@ export default function OrganizationPage() {
       );
       const ts = currentTimestamp();
 
-      if (false) {
-        // live contract call placeholder
+      const puzzleClient = (window as any).aleo?.puzzleWalletClient;
+      if (puzzleClient && effectiveKey && !demoMode) {
+        const puzzleWallet = (window as any).aleo.puzzleWalletClient;
+        const response = await puzzleWallet.requestCreateEvent.mutate({
+          method: "requestCreateEvent",
+          params: {
+            address: effectiveKey,
+            network: "AleoTestnet",
+            type: "Execute",
+            programId: "veritaszk.aleo",
+            functionId: "generate_solvency_proof",
+            fee: 0.005,
+            inputs: [...assetInputs, ...liabilityInputs, ts],
+          },
+        });
+        console.log("[LIVE] generate_solvency_proof response:", response);
+        if (response?.error) throw new Error(response.error);
       } else {
         console.log("[SIM] generate_solvency_proof called");
         await new Promise((r) => setTimeout(r, 3000));
@@ -198,7 +213,7 @@ export default function OrganizationPage() {
           handleProofComplete(nonce, ts);
           // Auto-close removed — user closes manually
         }}
-        walletAddress={publicKey || (typeof window !== "undefined" ? localStorage.getItem("veritaszk_wallet_address") : "") || ""}
+        walletAddress={publicKey || (typeof window !== "undefined" ? localStorage.getItem("veritaszk_wallet_address") || "" : "")}
       />
 
       <style>{`

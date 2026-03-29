@@ -35,8 +35,28 @@ export function AssetDeclarationForm({ onAssetDeclared }: Props) {
       const assetId = generateFieldId();
       const ts = currentTimestamp();
 
-      if (false) {
-        // live contract call placeholder
+      const puzzleClient = (window as any).aleo?.puzzleWalletClient;
+      if (puzzleClient && publicKey) {
+        // Live contract call via Puzzle Wallet official API
+        const puzzleWallet = (window as any).aleo.puzzleWalletClient;
+        const response = await puzzleWallet.requestCreateEvent.mutate({
+          method: "requestCreateEvent",
+          params: {
+            address: publicKey,
+            network: "AleoTestnet",
+            type: "Execute",
+            programId: "veritaszk.aleo",
+            functionId: "declare_asset",
+            fee: 0.002,
+            inputs: [
+              `${assetType}u8`,
+              `${amt}u64`,
+              `${assetId}`,
+            ],
+          },
+        });
+        console.log("[LIVE] declare_asset response:", response);
+        if (response?.error) throw new Error(response.error);
       } else {
         console.log("[SIM] declare_asset called with:", { assetType, amt, assetId });
         await new Promise((r) => setTimeout(r, 1500));
