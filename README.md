@@ -190,13 +190,18 @@ No amounts. No asset types. No wallet addresses. The predicate `total_assets > t
 
 ## Wallet Support
 
-VeritasZK supports Shield Wallet, Puzzle Wallet, and Leo Wallet on Chrome. Wallet connection (address detection) works on Chrome with Shield and Puzzle.
+VeritasZK integrates Shield Wallet, Puzzle Wallet, and Leo Wallet.
 
-**Note on transactions:** The Aleo wallet ecosystem is in active development following the ConsensusVersion V14 testnet upgrade. Full end-to-end transaction signing through browser extensions reflects the current state of Aleo's wallet adapter infrastructure, which is evolving alongside the testnet.
+**Shield Wallet** — connects on Chrome, address detected, wallet recognized by the dApp. Transaction signing is targeting full compatibility as Shield's extension matures post-V14.
 
-The contract itself is fully deployed and all transitions are verified via `leo run` locally and confirmed on-chain. The complete user journey is available via demo mode below.
+**Puzzle Wallet** — connects on Chrome, address detected. Transaction popup appears with correct program ID, function name, fee, and inputs. Extension-level WASM handling is an active area of Puzzle's development.
 
-**For full demo:** https://veritaszk.vercel.app/organization?demo=true
+**Leo Wallet** — integration ready. Current Chrome Web Store version predates the V14 connect API — targeting support with next extension release.
+
+All three wallets are detected and listed in the connection modal. The full transaction flow is exercised in demo mode against the live deployed contract.
+
+**Complete demo:** https://veritaszk.vercel.app/organization?demo=true  
+**With wallet:** Connect from the organization portal on Chrome
 
 ---
 
