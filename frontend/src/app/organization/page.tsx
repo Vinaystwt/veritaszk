@@ -16,7 +16,7 @@ import { Loader2 } from "lucide-react";
 
 export default function OrganizationPage() {
   const { wallet, connecting: _connecting } = useWallet();
-  const publicKey = wallet?.address ?? null;
+  const publicKey = wallet?.address ?? (typeof window !== "undefined" ? (window as any).shield?._publicKey : null) ?? null;
   const walletConnected = !!wallet;
   const [demoMode, setDemoMode] = useState(false);
   useEffect(() => {

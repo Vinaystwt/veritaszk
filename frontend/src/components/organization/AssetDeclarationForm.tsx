@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Loader2, CheckCircle } from "lucide-react";
-import { generateFieldId, currentTimestamp, ASSET_LABELS, ASSET_COLORS, CONTRACT_ADDRESS } from "@/lib/aleoUtils";
+import { generateFieldId, currentTimestamp, ASSET_LABELS, ASSET_COLORS } from "@/lib/aleoUtils";
 import { useWallet } from "@/context/WalletContext";
 
 export interface DeclaredAsset {
@@ -19,7 +19,6 @@ interface Props {
 
 export function AssetDeclarationForm({ onAssetDeclared }: Props) {
   const { wallet } = useWallet();
-  const publicKey = wallet?.address ?? null;
   const [assetType, setAssetType] = useState(1);
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -36,10 +35,12 @@ export function AssetDeclarationForm({ onAssetDeclared }: Props) {
       const ts = currentTimestamp();
 
       const puzzleClient = (window as any).aleo?.puzzleWalletClient;
+      const shieldClient = (window as any).shield;
+      const publicKey = wallet?.address ?? shieldClient?._publicKey ?? localStorage.getItem("veritaszk_wallet_address");
+
       if (puzzleClient && publicKey) {
-        // Live contract call via Puzzle Wallet official API
-        const puzzleWallet = (window as any).aleo.puzzleWalletClient;
-        const response = await puzzleWallet.requestCreateEvent.mutate({
+        // Puzzle Wallet
+        const response = await puzzleClient.requestCreateEvent.mutate({
           method: "requestCreateEvent",
           params: {
             address: publicKey,
@@ -48,17 +49,29 @@ export function AssetDeclarationForm({ onAssetDeclared }: Props) {
             programId: "veritaszk.aleo",
             functionId: "declare_asset",
             fee: 0.002,
-            inputs: [
-              `${assetType}u8`,
-              `${amt}u64`,
-              `${assetId}`,
-            ],
+            inputs: [`${assetType}u8`, `${amt}u64`, `${assetId}`],
           },
         });
-        console.log("[LIVE] declare_asset response:", response);
+        console.log("[LIVE-PUZZLE] declare_asset:", response);
         if (response?.error) throw new Error(response.error);
+      } else if (shieldClient) {
+        // Shield Wallet — reconnect if needed to set _publicKey
+        if (!shieldClient._publicKey) {
+          await shieldClient.connect("testnet", "AutoDecrypt", ["veritaszk.aleo"]);
+          await new Promise(r => setTimeout(r, 300));
+        }
+        const response = await shieldClient.executeTransaction({
+          program: "veritaszk.aleo",
+          function: "declare_asset",
+          inputs: [`${assetType}u8`, `${amt}u64`, `${assetId}`],
+          fee: 2000,
+          network: "testnet",
+        });
+        console.log("[LIVE-SHIELD] declare_asset:", response);
+        if (!response?.transactionId) throw new Error("Shield: no transaction ID returned");
       } else {
-        console.log("[SIM] declare_asset called with:", { assetType, amt, assetId });
+        // Simulation mode
+        console.log("[SIM] declare_asset:", { assetType, amt, assetId });
         await new Promise((r) => setTimeout(r, 1500));
       }
 

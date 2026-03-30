@@ -19,7 +19,7 @@ interface Props {
 
 export function LiabilityDeclarationForm({ onLiabilityDeclared }: Props) {
   const { wallet } = useWallet();
-  const publicKey = wallet?.address ?? null;
+  const publicKey = wallet?.address ?? (typeof window !== "undefined" ? ((window as any).shield?._publicKey ?? localStorage.getItem("veritaszk_wallet_address")) : null);
   const [liabilityType, setLiabilityType] = useState(1);
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
