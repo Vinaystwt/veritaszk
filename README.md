@@ -4,7 +4,7 @@
 — Prove Solvency. Reveal Nothing.
 
 > The first zero-knowledge solvency proof system on Aleo.  
-> Organizations prove they hold more than they owe — without revealing a single number.
+> Organizations prove they hold more than they owe without revealing a single number.
 
 **Live Demo:** https://veritaszk.vercel.app  
 **Instant Demo (no wallet required):** https://veritaszk.vercel.app/organization?demo=true  
@@ -26,7 +26,7 @@ VeritasZK eliminates that tradeoff.
 
 ## The Solution
 
-VeritasZK lets DAOs, crypto funds, exchanges, and organizations prove they are solvent — assets exceed liabilities — via ZK proof on Aleo, without revealing:
+VeritasZK lets DAOs, crypto funds, exchanges, and organizations prove they are solvent assets exceed liabilities via ZK proof on Aleo, without revealing:
 
 - Which assets they hold
 - Exact amounts per asset
@@ -115,8 +115,7 @@ const { isSolvent } = await verifySolvency('aleo1abc...')
 - Asset types or compositions
 - Any data that could reveal financial strategy
 
-This is guaranteed by the underlying Leo contract — the data does not 
-exist in any queryable public state.
+This is guaranteed by the underlying Leo contract, the data does not exist in any queryable public state.
 
 [View on npm →](https://www.npmjs.com/package/veritaszk-sdk)
 
@@ -157,7 +156,7 @@ Aleo's private Records are first-class citizens — not bolt-ons. Off-chain exec
 **Transaction:** `at1tkmfhd76ggsrx7p0srlhfc6hyjsqefskrtwd49y3elk4dga4sczse6r5c4`  
 **Explorer:** [View on Provable Explorer](https://testnet.explorer.provable.com/transaction/at1tkmfhd76ggsrx7p0srlhfc6hyjsqefskrtwd49y3elk4dga4sczse6r5c4)
 
-Deployed by building Leo from source (commit e773034) against snarkVM 4.6.0 — the first community deployment after the ConsensusVersion V14 upgrade. Solution shared in Aleo Discord #dev-support.
+Deployed by building Leo from source (commit e773034) against snarkVM 4.6.0, the first community deployment after the ConsensusVersion V14 upgrade. Solution shared in Aleo Discord #dev-support.
 
 ---
 
@@ -196,7 +195,7 @@ VeritasZK integrates Shield Wallet, Puzzle Wallet, and Leo Wallet.
 
 **Puzzle Wallet** — connects on Chrome, address detected. Transaction popup appears with correct program ID, function name, fee, and inputs. Extension-level WASM handling is an active area of Puzzle's development.
 
-**Leo Wallet** — integration ready. Current Chrome Web Store version predates the V14 connect API — targeting support with next extension release.
+**Leo Wallet** — integration ready. Current Chrome Web Store version predates the V14 connect API, targeting support with next extension release.
 
 All three wallets are detected and listed in the connection modal. The full transaction flow is exercised in demo mode against the live deployed contract.
 
