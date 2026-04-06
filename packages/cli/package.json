@@ -1,0 +1,19 @@
+{
+  "name": "veritaszk-cli",
+  "version": "0.1.0",
+  "description": "CLI for querying VeritasZK zero-knowledge solvency proofs",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": { "veritaszk": "dist/index.js" },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["cli", "aleo", "zero-knowledge", "solvency"],
+  "license": "MIT",
+  "dependencies": { "commander": "^12.0.0" },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}
