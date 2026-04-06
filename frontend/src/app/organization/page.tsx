@@ -1092,7 +1092,7 @@ export default function OrganizationPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--bg-base)] py-8">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <motion.div
@@ -1117,14 +1117,14 @@ export default function OrganizationPage() {
         <WalletBanner demoMode={demoMode} />
 
         {/* Two-column layout */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
-          {/* Left: Step tracker */}
-          <div className="lg:sticky lg:top-8 lg:self-start">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[280px_1fr]">
+          {/* Left: Step tracker — sticky on desktop */}
+          <div className="lg:sticky lg:top-24 lg:h-fit">
             <StepTracker current={step} registered={step > 0} />
           </div>
 
-          {/* Right: Form content */}
-          <div>
+          {/* Right: Form content — only as tall as needed */}
+          <div className="h-fit">
             <AnimatePresence mode="wait">
               {step === 0 && (
                 <motion.div

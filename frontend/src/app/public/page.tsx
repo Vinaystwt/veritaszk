@@ -385,7 +385,7 @@ export default function PublicDashboardPage() {
         }}
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="relative z-10 max-w-7xl mx-auto py-10">
         {/* ─── HEADER ──────────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -448,7 +448,7 @@ export default function PublicDashboardPage() {
                   <button
                     key={key}
                     onClick={() => setFilter(key)}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all"
+                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-all"
                     style={{
                       background: filter === key ? "var(--accent-primary)" : "rgba(255,255,255,0.04)",
                       color: filter === key ? "#080808" : "var(--text-secondary)",
@@ -504,17 +504,15 @@ export default function PublicDashboardPage() {
                 >
                   <GlassCard>
                     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                      <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                        style={{
-                          background: "var(--bg-elevated)",
-                          border: "1px solid var(--border-subtle)",
-                        }}
-                      >
-                        <Vault size={28} style={{ color: "var(--text-tertiary)" }} />
-                      </div>
+                      <svg width="32" height="32" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" strokeWidth="1.5"
+                        className="text-gray-500 mx-auto mb-4">
+                        <rect x="3" y="11" width="18" height="11"
+                          rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
                       <h3 className="text-lg font-semibold mb-2">
-                        No organizations match
+                        No organizations found
                       </h3>
                       <p className="text-sm max-w-sm mb-6" style={{ color: "var(--text-secondary)" }}>
                         {filter !== "all"

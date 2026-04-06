@@ -8,6 +8,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import StatsCounter from "@/components/ui/StatsCounter";
 import CommitmentDisplay from "@/components/ui/CommitmentDisplay";
 import GlassCard from "@/components/ui/GlassCard";
+import MatrixRain from "@/components/MatrixRain";
 
 const EXPLORER = "https://api.explorer.provable.com/v1/testnet";
 const CORE = "veritaszk_core.aleo";
@@ -103,7 +104,7 @@ export default function Home() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-base)", position: "relative", overflow: "hidden" }}>
+    <div className="-mx-6 md:-mx-8" style={{ minHeight: "100vh", background: "var(--bg-base)", position: "relative", overflow: "hidden" }}>
 
       {/* Dot grid background */}
       <div style={{ position: "fixed", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)", backgroundSize: "32px 32px", pointerEvents: "none", zIndex: 0 }} />
@@ -125,7 +126,9 @@ export default function Home() {
       )}
 
       {/* ─── HERO ────────────────────────────────────────────────── */}
-      <section style={{ position: "relative", zIndex: 1, minHeight: "85vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px 60px", textAlign: "center" }}>
+      <div className="relative overflow-hidden">
+        <MatrixRain />
+        <section style={{ position: "relative", zIndex: 1, minHeight: "85vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px 32px", textAlign: "center" }}>
 
         <motion.div initial="hidden" animate="visible" custom={0} variants={fadeUp} style={{ marginBottom: "20px" }}>
           <span style={{ display: "inline-block", padding: "6px 16px", borderRadius: "100px", border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.06)", color: "var(--accent-primary)", fontSize: "13px", fontWeight: 500, letterSpacing: "0.05em", fontFamily: "var(--font-mono)" }}>
@@ -172,10 +175,11 @@ export default function Home() {
           <div style={{ width: "1px", height: "60px", background: "linear-gradient(to bottom, rgba(16,185,129,0.4), transparent)" }} />
         </motion.div>
       </section>
+      </div>
 
       {/* ─── LIVE STATS BAR ──────────────────────────────────────── */}
       <section style={{ position: "relative", zIndex: 1, borderTop: "1px solid var(--border-subtle)", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "32px 24px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px", textAlign: "center" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "16px 24px 24px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px", textAlign: "center" }}>
           <StatsCounter value={stats.proofs} label="Proofs Generated" isLive />
           <div style={{ borderLeft: "1px solid var(--border-subtle)", borderRight: "1px solid var(--border-subtle)" }}>
             <StatsCounter value={stats.verifications} label="Verifications" isLive />
@@ -267,31 +271,63 @@ export default function Home() {
           Three-Program CPI Architecture
         </motion.h2>
 
-        <GlassCard className="p-8 font-mono text-sm leading-loose" >
-          <pre style={{ color: "var(--text-secondary)", whiteSpace: "pre", overflowX: "auto", fontSize: "13px" }}>
-{`┌──────────────────────┐
-│ veritaszk_registry   │  org identity · credentials
-└──────────┬───────────┘
-           │ validates registration
-┌──────────▼───────────┐      ┌──────────────────────┐
-│  veritaszk_core      │─────►│  veritaszk_audit      │
-│  ZK proof engine     │      │  immutable audit trail│
-└──────────────────────┘      └──────────────────────┘`}
-          </pre>
-        </GlassCard>
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 font-mono text-sm">
+          <div className="flex flex-col items-center gap-4">
+            {/* Registry */}
+            <div className="border border-emerald-500/40 rounded-lg px-6 py-3 text-center w-72">
+              <div className="text-emerald-400 font-semibold">
+                veritaszk_registry.aleo
+              </div>
+              <div className="text-gray-500 text-xs mt-1">
+                org identity · credentials
+              </div>
+            </div>
 
-        <div style={{ marginTop: "24px", display: "flex", gap: "24px", justifyContent: "center", flexWrap: "wrap", fontSize: "13px" }}>
-          {[
-            { name: "Registry", slug: "veritaszk_registry.aleo" },
-            { name: "Core", slug: "veritaszk_core.aleo" },
-            { name: "Audit", slug: "veritaszk_audit.aleo" },
-          ].map((p) => (
-            <a key={p.slug} href={`https://explorer.aleo.org/program/${p.slug}`} target="_blank" rel="noopener noreferrer"
-              style={{ color: "var(--accent-primary)", textDecoration: "none", fontFamily: "var(--font-mono)" }}
-            >
-              {p.name} →
-            </a>
-          ))}
+            {/* Arrow down */}
+            <div className="text-gray-600 text-xs text-center">
+              ↓ validates registration
+            </div>
+
+            {/* Core and Audit side by side */}
+            <div className="flex items-center gap-4">
+              <div className="border border-gray-600 rounded-lg px-6 py-3 text-center w-48">
+                <div className="text-white font-semibold">
+                  veritaszk_core.aleo
+                </div>
+                <div className="text-gray-500 text-xs mt-1">
+                  ZK proof engine
+                </div>
+              </div>
+
+              {/* Arrow right */}
+              <div className="text-gray-600 text-sm">──→</div>
+
+              <div className="border border-gray-600 rounded-lg px-6 py-3 text-center w-48">
+                <div className="text-white font-semibold">
+                  veritaszk_audit.aleo
+                </div>
+                <div className="text-gray-500 text-xs mt-1">
+                  immutable audit trail
+                </div>
+              </div>
+            </div>
+
+            {/* Explorer links */}
+            <div className="flex gap-6 text-xs text-emerald-400 mt-2">
+              <a href="https://explorer.aleo.org/program/veritaszk_registry.aleo"
+                target="_blank" rel="noopener noreferrer" className="hover:underline">
+                Registry →
+              </a>
+              <a href="https://explorer.aleo.org/program/veritaszk_core.aleo"
+                target="_blank" rel="noopener noreferrer" className="hover:underline">
+                Core →
+              </a>
+              <a href="https://explorer.aleo.org/program/veritaszk_audit.aleo"
+                target="_blank" rel="noopener noreferrer" className="hover:underline">
+                Audit →
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 

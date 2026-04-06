@@ -159,6 +159,7 @@ export default function VerifierPage() {
 
   return (
     <div
+      className="-mx-6 md:-mx-8"
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -185,33 +186,24 @@ export default function VerifierPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          style={{ textAlign: "center", marginBottom: "40px" }}
+          className="text-center mb-8"
         >
-          <div
-            style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "50%",
-              background: "rgba(16,185,129,0.08)",
-              border: "1px solid rgba(16,185,129,0.2)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px",
-            }}
-          >
-            <Shield size={24} color="var(--accent-primary)" />
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <svg width="24" height="24" viewBox="0 0 24 24"
+              fill="none" stroke="#10b981" strokeWidth="2"
+              className="flex-shrink-0">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <h1
+              style={{
+                fontSize: "clamp(28px, 5vw, 36px)",
+                fontWeight: 700,
+                lineHeight: 1.2,
+              }}
+            >
+              Verify Solvency
+            </h1>
           </div>
-          <h1
-            style={{
-              fontSize: "clamp(28px, 5vw, 36px)",
-              fontWeight: 700,
-              marginBottom: "8px",
-              lineHeight: 1.2,
-            }}
-          >
-            Verify Solvency
-          </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "15px", lineHeight: 1.6 }}>
             Enter an organization&apos;s commitment address to verify their zero-knowledge
             solvency proof. No wallet required.

@@ -45,7 +45,7 @@ export default function VisionPage() {
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center px-6 pt-32 pb-20 text-center">
+      <section className="relative flex flex-col items-center justify-center pt-32 pb-20 text-center">
         <motion.div
           initial="hidden"
           animate="visible"
@@ -90,7 +90,7 @@ export default function VisionPage() {
         </motion.div>
       </section>
 
-      <div className="mx-auto max-w-[720px] px-6">
+      <div className="mx-auto max-w-[720px]">
         {/* Section 1: The Problem With Proof of Reserves */}
         <motion.section
           initial="hidden"
