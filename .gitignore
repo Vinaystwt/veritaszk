@@ -7,6 +7,22 @@
 veritaszk/build/
 veritaszk/.aleo/
 veritaszk/outputs/
+veritaszk_core/build/
+veritaszk_core/.aleo/
+veritaszk_core/outputs/
+veritaszk_registry/build/
+veritaszk_registry/.aleo/
+veritaszk_registry/outputs/
+veritaszk_audit/build/
+veritaszk_audit/.aleo/
+veritaszk_audit/outputs/
+.leo/
+
+# Sensitive
+context.md
+
+# Dependencies
+node_modules/
 
 # Next.js
 frontend/.next/

@@ -1,0 +1,9 @@
+{
+  "program": "veritaszk_core.aleo",
+  "version": "0.2.0",
+  "description": "VeritasZK core solvency proof logic with CPI",
+  "license": "MIT",
+  "leo": "4.0.0",
+  "dependencies": null,
+  "dev_dependencies": null
+}
