@@ -1,7 +1,7 @@
 {
   "name": "veritaszk-sdk",
-  "version": "0.2.0",
-  "description": "SDK for VeritasZK zero-knowledge solvency proofs on Aleo",
+  "version": "0.2.1",
+  "description": "TypeScript SDK for VeritasZK — query zero-knowledge solvency proofs on Aleo. Verify that organizations prove assets exceed liabilities without any private financial data being revealed. Includes React hooks, batch verification, and webhook support.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -16,11 +16,24 @@
   "keywords": [
     "aleo",
     "zero-knowledge",
-    "solvency",
     "zk",
-    "privacy"
+    "solvency",
+    "proof-of-reserves",
+    "privacy",
+    "blockchain",
+    "leo",
+    "veritaszk"
   ],
+  "author": "Vinay Sharma",
   "license": "MIT",
+  "homepage": "https://veritaszk.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vinaystwt/veritaszk"
+  },
+  "bugs": {
+    "url": "https://github.com/Vinaystwt/veritaszk/issues"
+  },
   "devDependencies": {
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
@@ -28,5 +41,8 @@
     "jest": "^29.0.0",
     "ts-jest": "^29.0.0",
     "typescript": "^5.4.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
   }
 }

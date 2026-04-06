@@ -1,7 +1,7 @@
 {
   "name": "veritaszk-mcp",
-  "version": "0.1.0",
-  "description": "MCP server for VeritasZK zero-knowledge solvency proofs on Aleo",
+  "version": "0.1.1",
+  "description": "MCP server for VeritasZK — lets AI agents query zero-knowledge solvency proofs on Aleo. Check if organizations hold more assets than liabilities without accessing any private financial data.",
   "type": "module",
   "main": "dist/index.js",
   "bin": { "veritaszk-mcp": "dist/index.js" },
@@ -10,8 +10,31 @@
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["mcp", "aleo", "zero-knowledge", "solvency", "zk"],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "aleo",
+    "zero-knowledge",
+    "zk",
+    "solvency",
+    "proof-of-reserves",
+    "privacy",
+    "blockchain",
+    "leo",
+    "veritaszk",
+    "ai-tools",
+    "claude"
+  ],
+  "author": "Vinay Sharma",
   "license": "MIT",
+  "homepage": "https://veritaszk.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vinaystwt/veritaszk"
+  },
+  "bugs": {
+    "url": "https://github.com/Vinaystwt/veritaszk/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^3.22.0"
