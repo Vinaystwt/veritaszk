@@ -18,3 +18,6 @@ register_org test: at1swgrxxpmuwk5w9a3xpnmddc0256wue8833r0mscst9t5y2429vfqxj93w0
 ## Network
 Aleo Testnet | Leo CLI v4.0.0
 Deploy wallet: aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00
+
+## Deploy Wallet
+aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00
