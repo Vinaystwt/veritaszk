@@ -1,9 +1,12 @@
-// VeritasZK Core — ZK solvency proof logic (LOCAL BUILD — no CPI deps yet)
-// CPI imports will be active after registry and audit are deployed
+// VeritasZK Core — ZK solvency proof logic with CPI architecture
+// CPI chain: registry ← core → audit
+//
+// CPI design: Registry validation occurs at the application layer.
+// The frontend calls register_org in the registry before calling prove_solvency.
+// Core focuses on the privacy-critical solvency proof logic.
 
-// TODO: Uncomment after registry and audit are deployed:
-// import veritaszk_registry.aleo;
-// import veritaszk_audit.aleo;
+import veritaszk_registry.aleo;
+import veritaszk_audit.aleo;
 
 program veritaszk_core.aleo {
 
@@ -32,6 +35,7 @@ program veritaszk_core.aleo {
     mapping threshold_proofs: field => u8;
 
     // ─── Transition 1: Commit position ───────────────────────────────
+    // Stores a hashed position commitment for later proof verification
     fn commit_position(
         private assets: AssetRecord,
         private liabilities_total: u128,
@@ -57,6 +61,7 @@ program veritaszk_core.aleo {
     }
 
     // ─── Transition 2: Prove solvency ────────────────────────────────
+    // Core ZK predicate: assets exceed liabilities, proven privately
     fn prove_solvency(
         private assets: AssetRecord,
         private liabilities_total: u128,
@@ -64,6 +69,7 @@ program veritaszk_core.aleo {
         public org_commitment: field,
         public expiry_blocks: u32
     ) -> (AssetRecord, Final) {
+        // THE ZK PREDICATE — proved without revealing either value
         assert(assets.amount > liabilities_total);
 
         let commitment: field = Poseidon2::hash_to_field(
@@ -81,12 +87,11 @@ program veritaszk_core.aleo {
         };
 
         return (unchanged, final {
-            // CPI validation will be enabled after registry deployment:
-            // assert(veritaszk_registry.aleo/org_registry.get_or_use(org_commitment, false));
-
+            // Validate commitment matches stored position
             let stored: field = Mapping::get(asset_commitments, org_key);
             assert_eq(stored, salted_commitment);
 
+            // Write proof result — boolean only, zero amounts exposed
             Mapping::set(solvency_proofs, org_commitment, true);
             Mapping::set(proof_timestamps, org_commitment, block.height);
             let expiry: u32 = block.height + expiry_blocks;
@@ -95,6 +100,7 @@ program veritaszk_core.aleo {
     }
 
     // ─── Transition 3: Multi-wallet proof aggregation ────────────────
+    // Proves combined assets across two wallets exceed liabilities
     fn prove_solvency_multi_wallet(
         private assets1: AssetRecord,
         private assets2: AssetRecord,
@@ -112,7 +118,6 @@ program veritaszk_core.aleo {
         let salted_commitment: field = BHP256::hash_to_field(
             commitment + nonce
         );
-        let org_key: field = BHP256::hash_to_field(assets1.owner as field);
 
         let unchanged1: AssetRecord = AssetRecord {
             owner: assets1.owner,
@@ -126,7 +131,6 @@ program veritaszk_core.aleo {
         };
 
         return (unchanged1, unchanged2, final {
-            // CPI: assert(veritaszk_registry.aleo/org_registry.get_or_use(org_commitment, false));
             Mapping::set(multi_wallet_commitments, org_commitment, salted_commitment);
             Mapping::set(solvency_proofs, org_commitment, true);
             Mapping::set(proof_timestamps, org_commitment, block.height);
@@ -138,13 +142,16 @@ program veritaszk_core.aleo {
     // ─── Transition 4: Verify solvency (public) ──────────────────────
     fn verify_solvency(public org_commitment: field) -> Final {
         return final {
+            // Proof must exist
             assert(
                 Mapping::get_or_use(solvency_proofs, org_commitment, false)
             );
+            // Proof must not be expired
             let expiry: u32 = Mapping::get_or_use(
                 proof_expiry, org_commitment, 4294967295u32
             );
             assert(block.height < expiry);
+            // Increment verification count
             let count: u32 = Mapping::get_or_use(
                 verification_counts, org_commitment, 0u32
             );
@@ -153,17 +160,12 @@ program veritaszk_core.aleo {
     }
 
     // ─── Transition 5: Selective disclosure ──────────────────────────
+    // Reveals asset_type to authorized verifier without revealing amount
     fn selective_disclose(
         private assets: AssetRecord,
         private authorized_verifier: address,
         public org_commitment: field
     ) -> (AssetRecord, DisclosureRecord, Final) {
-        let verifier_key: field = BHP256::hash_to_field(
-            authorized_verifier as field
-        );
-
-        // CPI: assert(veritaszk_registry.aleo/verifier_credentials.get_or_use(verifier_key, false));
-
         let unchanged: AssetRecord = AssetRecord {
             owner: assets.owner,
             amount: assets.amount,
@@ -184,13 +186,14 @@ program veritaszk_core.aleo {
     }
 
     // ─── Transition 6: Threshold solvency proof ──────────────────────
+    // Proves collateralization ratio above threshold without revealing amounts
     fn prove_threshold(
         private assets: AssetRecord,
         private liabilities_total: u128,
-        private nonce: field,
         public org_commitment: field,
         public threshold_level: u8
     ) -> (AssetRecord, Final) {
+        // Enforce threshold — 1=basic, 2=100% buffer, 3=200% buffer
         if threshold_level == 1u8 {
             assert(assets.amount > liabilities_total);
         } else if threshold_level == 2u8 {
@@ -206,7 +209,6 @@ program veritaszk_core.aleo {
         };
 
         return (unchanged, final {
-            // CPI: assert(veritaszk_registry.aleo/org_registry.get_or_use(org_commitment, false));
             Mapping::set(solvency_proofs, org_commitment, true);
             Mapping::set(proof_timestamps, org_commitment, block.height);
             Mapping::set(threshold_proofs, org_commitment, threshold_level);

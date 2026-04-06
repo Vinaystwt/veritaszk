@@ -4,6 +4,17 @@
   "description": "VeritasZK core solvency proof logic with CPI",
   "license": "MIT",
   "leo": "4.0.0",
-  "dependencies": null,
+  "dependencies": [
+    {
+      "name": "veritaszk_registry.aleo",
+      "location": "network",
+      "path": null
+    },
+    {
+      "name": "veritaszk_audit.aleo",
+      "location": "network",
+      "path": null
+    }
+  ],
   "dev_dependencies": null
 }
