@@ -1,0 +1,23 @@
+{
+  "name": "veritaszk-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for VeritasZK zero-knowledge solvency proofs on Aleo",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": { "veritaszk-mcp": "dist/index.js" },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["mcp", "aleo", "zero-knowledge", "solvency", "zk"],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}
