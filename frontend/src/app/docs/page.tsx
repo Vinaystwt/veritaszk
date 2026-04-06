@@ -172,11 +172,12 @@ export default function DocsPage() {
               </p>
 
               <CodeBlock
-                code={`import { VeritasZK } from 'veritaszk-sdk'
+                code={`import { verifySolvency } from 'veritaszk-sdk'
 
-const client = new VeritasZK({ network: 'testnet' })
-const proof = await client.generateSolvencyProof(assets, liabilities)
-const verified = await client.verifyProof(proof)`}
+const result = await verifySolvency('aleo1...')
+console.log(result.isSolvent)           // boolean
+console.log(result.verificationCount)   // number
+console.log(result.thresholdLevel)      // 0 | 1 | 2 | 3`}
                 language="typescript"
               />
 
@@ -188,8 +189,8 @@ const verified = await client.verifyProof(proof)`}
                       What you need
                     </p>
                     <ul className="mt-2 space-y-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      <li>An Aleo wallet (Leo Wallet or Puplet)</li>
-                      <li>Assets and liabilities as numeric arrays</li>
+                      <li>Shield Wallet browser extension (for transactions)</li>
+                      <li>An organization commitment (from registration)</li>
                       <li>Testnet access (mainnet coming soon)</li>
                     </ul>
                   </div>
@@ -209,70 +210,73 @@ const verified = await client.verifyProof(proof)`}
               <div className="space-y-8">
                 {[
                   {
-                    name: 'generateSolvencyProof(assets, liabilities)',
-                    params: [
-                      { name: 'assets', type: 'number[]', desc: 'Array of asset values' },
-                      { name: 'liabilities', type: 'number[]', desc: 'Array of liability values' },
-                    ],
-                    returns: 'Promise<Proof>',
-                    desc: 'Generates a zero-knowledge proof that total assets >= total liabilities without revealing individual values.',
-                    example: `const proof = await client.generateSolvencyProof(
-  [1000, 500, 200],   // assets
-  [800, 400]          // liabilities
-)
-// proof.commitment -> on-chain record`,
-                  },
-                  {
-                    name: 'verifyProof(proof)',
-                    params: [
-                      { name: 'proof', type: 'Proof', desc: 'Proof object from generateSolvencyProof' },
-                    ],
-                    returns: 'Promise<boolean>',
-                    desc: 'Verifies a solvency proof against on-chain state. Returns true if the proof is valid and the entity is solvent.',
-                    example: `const isValid = await client.verifyProof(proof)
-console.log(isValid) // true`,
-                  },
-                  {
-                    name: 'getAuditTrail(commitment)',
-                    params: [
-                      { name: 'commitment', type: 'string', desc: 'On-chain commitment hash' },
-                    ],
-                    returns: 'Promise<AuditEntry[]>',
-                    desc: 'Retrieves the full audit trail for a given proof commitment, including timestamp, verifier, and status.',
-                    example: `const trail = await client.getAuditTrail('aleo1abc...')
-// [{ timestamp, verifier, status, txId }]`,
-                  },
-                  {
-                    name: 'registerVerifier(verifierAddress)',
-                    params: [
-                      { name: 'verifierAddress', type: 'string', desc: 'Aleo address of the verifier' },
-                    ],
-                    returns: 'Promise<VerifierRecord>',
-                    desc: 'Registers a new verifier on the network. Only registered verifiers can validate proofs on-chain.',
-                    example: `const verifier = await client.registerVerifier('aleo1verifier...')
-// { address, status, registeredAt }`,
-                  },
-                  {
-                    name: 'getSolvencyStatus(entityId)',
-                    params: [
-                      { name: 'entityId', type: 'string', desc: 'Unique entity identifier' },
-                    ],
+                    name: 'verifySolvency(orgCommitment: string)',
                     returns: 'Promise<SolvencyStatus>',
-                    desc: 'Returns the current solvency status of an entity, including last proof timestamp and validity.',
-                    example: `const status = await client.getSolvencyStatus('exchange-001')
-// { isSolvent, lastProof, nextExpiry }`,
+                    desc: 'Queries all public mappings for an organization and returns full solvency status.',
+                    params: [
+                      { name: 'orgCommitment', type: 'string', desc: 'Organization commitment hash from registration' },
+                    ],
+                    returnsDetail: '{ orgCommitment, isSolvent, timestamp, expiryBlock, verificationCount, thresholdLevel, hasMultiWallet, isExpired, lastProofBlock }',
+                    example: `const result = await verifySolvency('aleo1cdmu479...')
+console.log(result.isSolvent)           // true
+console.log(result.verificationCount)   // 12
+console.log(result.thresholdLevel)      // 2`,
                   },
                   {
-                    name: 'subscribeToEvents(callback)',
+                    name: 'batchVerify(orgCommitments: string[])',
+                    returns: 'Promise<BatchVerifyResult[]>',
+                    desc: 'Checks multiple organizations in parallel. Returns results even if some queries fail.',
                     params: [
-                      { name: 'callback', type: '(event: ProofEvent) => void', desc: 'Event handler function' },
+                      { name: 'orgCommitments', type: 'string[]', desc: 'Array of commitment hashes' },
                     ],
-                    returns: '() => void',
-                    desc: 'Subscribes to real-time proof events (generated, verified, expired). Returns an unsubscribe function.',
-                    example: `const unsubscribe = client.subscribeToEvents((event) => {
-  console.log(event.type, event.data)
-})
-// Later: unsubscribe()`,
+                    returnsDetail: 'Array of { orgCommitment, isSolvent, error? }',
+                    example: `const results = await batchVerify(['aleo1abc...', 'aleo1def...'])
+// [{ orgCommitment, isSolvent: true }, ...]`,
+                  },
+                  {
+                    name: 'getAuditTrail(orgCommitment: string)',
+                    returns: 'Promise<AuditEvent>',
+                    desc: 'Retrieves proof event history from veritaszk_audit.aleo.',
+                    params: [
+                      { name: 'orgCommitment', type: 'string', desc: 'Organization commitment hash' },
+                    ],
+                    returnsDetail: '{ orgCommitment, eventCount, lastProofBlock, isExpired }',
+                    example: `const trail = await getAuditTrail('aleo1cdmu479...')
+console.log(trail.eventCount)      // 5
+console.log(trail.lastProofBlock)  // 142857`,
+                  },
+                  {
+                    name: 'isRegistered(orgCommitment: string)',
+                    returns: 'Promise<boolean>',
+                    desc: 'Checks if an organization is registered in veritaszk_registry.aleo.',
+                    params: [
+                      { name: 'orgCommitment', type: 'string', desc: 'Organization commitment hash' },
+                    ],
+                    returnsDetail: 'true if registered, false otherwise',
+                    example: `const registered = await isRegistered('aleo1cdmu479...')
+// true`,
+                  },
+                  {
+                    name: 'getVerificationCount(orgCommitment: string)',
+                    returns: 'Promise<number>',
+                    desc: 'Returns how many times an org\'s proof has been verified on-chain.',
+                    params: [
+                      { name: 'orgCommitment', type: 'string', desc: 'Organization commitment hash' },
+                    ],
+                    returnsDetail: 'Number of on-chain verifications',
+                    example: `const count = await getVerificationCount('aleo1cdmu479...')
+// 12`,
+                  },
+                  {
+                    name: 'isProofExpired(orgCommitment: string)',
+                    returns: 'Promise<boolean>',
+                    desc: 'Checks if a proof has exceeded its expiry block.',
+                    params: [
+                      { name: 'orgCommitment', type: 'string', desc: 'Organization commitment hash' },
+                    ],
+                    returnsDetail: 'true if expired, false otherwise',
+                    example: `const expired = await isProofExpired('aleo1cdmu479...')
+// false`,
                   },
                 ].map((fn, i) => (
                   <GlassCard key={i} className="p-5">
@@ -351,17 +355,18 @@ console.log(isValid) // true`,
                 <CodeBlock
                   code={`import { useSolvencyStatus } from 'veritaszk-sdk/react'
 
-function StatusBadge({ entityId }: { entityId: string }) {
-  const { status, loading, error } = useSolvencyStatus(entityId)
+function StatusBadge({ commitment }: { commitment: string }) {
+  const { status, loading, error, refetch } = useSolvencyStatus(commitment)
 
   if (loading) return <span>Checking...</span>
   if (error) return <span className="text-red-400">Error</span>
+  if (!status) return null
 
   return (
     <span className={status.isSolvent ? 'text-emerald-400' : 'text-red-400'}>
-      {status.isSolvent ? 'Solvent' : 'Not Solvent'}
+      {status.isSolvent ? '✓ Solvent' : '✗ Not Solvent'}
       <span className="ml-2 text-xs text-gray-500">
-        Last proof: {new Date(status.lastProof).toLocaleString()}
+        Verified {status.verificationCount} times
       </span>
     </span>
   )
@@ -383,17 +388,16 @@ function StatusBadge({ entityId }: { entityId: string }) {
                   code={`import { useAuditTrail } from 'veritaszk-sdk/react'
 
 function AuditHistory({ commitment }: { commitment: string }) {
-  const { entries, loading, loadMore } = useAuditTrail(commitment, {
-    pageSize: 20,
-    pollingInterval: 30_000, // 30s
-  })
+  const { events, loading, error } = useAuditTrail(commitment)
+
+  if (loading) return <span>Loading...</span>
+  if (error) return <span className="text-red-400">Error</span>
+  if (!events) return null
 
   return (
     <div>
-      {entries.map((entry) => (
-        <AuditEntry key={entry.id} entry={entry} />
-      ))}
-      <button onClick={loadMore}>Load more</button>
+      <p>{events.eventCount} proof events recorded</p>
+      <p>Last proven: block {events.lastProofBlock}</p>
     </div>
   )
 }`}
@@ -415,38 +419,33 @@ function AuditHistory({ commitment }: { commitment: string }) {
                 code={`import { VeritasZKWebhook } from 'veritaszk-sdk'
 
 const webhook = new VeritasZKWebhook({
-  endpoint: 'https://your-api.com/webhooks/veritaszk',
-  secret: process.env.WEBHOOK_SECRET,
-  events: ['proof.generated', 'proof.verified', 'proof.expired'],
+  url: 'https://your-server.com/webhook',
+  orgCommitment: 'aleo1cdmu479...',
+  events: ['proof.generated', 'proof.expired', 'proof.revoked'],
+  pollIntervalMs: 60000,
 })
 
-// Start listening
-await webhook.start()
+webhook.start()
+// POSTs to your URL when solvency state changes
 
-// Handle events
-webhook.on('proof.verified', (payload) => {
-  console.log('Proof verified:', payload.commitment)
-  // Update your database, notify users, etc.
-})
-
-webhook.on('proof.expired', (payload) => {
-  console.log('Proof expired for:', payload.entityId)
-  // Trigger a new proof generation
-})
-
-// Stop listening
-await webhook.stop()`}
+webhook.stop()
+// Stops polling`}
                 language="typescript"
               />
 
               <GlassCard className="mt-6 p-5">
                 <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                    Security:{' '}
-                  </span>
-                  All webhook payloads are signed with HMAC-SHA256. Verify the signature using the
-                  secret provided during webhook setup to prevent spoofed events.
+                  <strong style={{ color: 'var(--text-primary)' }}>Event payloads include:</strong>
                 </p>
+                <CodeBlock
+                  code={`{
+  "event": "proof.generated",
+  "orgCommitment": "aleo1cdmu479...",
+  "isSolvent": true,
+  "timestamp": "2026-04-06T12:00:00.000Z"
+}`}
+                  language="json"
+                />
               </GlassCard>
             </section>
 
@@ -666,49 +665,18 @@ await webhook.stop()`}
                 Three-Program CPI Flow
               </h3>
               <CodeBlock
-                code={`┌─────────────────────────────────────────────────────────┐
-│                     Client (SDK / CLI)                   │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  1. Prepare assets[] and liabilities[]             │  │
-│  │  2. Call VeritasZK.generateSolvencyProof()         │  │
-│  └──────────────────────┬─────────────────────────────┘  │
-│                         │                                │
-│                         ▼                                │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  Program: solvency_prover.aleo                     │  │
-│  │  ┌──────────────────────────────────────────────┐  │  │
-│  │  │  INPUT:  assets[], liabilities[] (private)   │  │  │
-│  │  │  LOGIC:  sum(assets) >= sum(liabilities)     │  │  │
-│  │  │  OUTPUT: solvency_record (private Record)    │  │  │
-│  │  │          proof_commitment  (public mapping)  │  │  │
-│  │  └──────────────────────────────────────────────┘  │  │
-│  └──────────────────────┬─────────────────────────────┘  │
-│                         │ CPI                            │
-│                         ▼                                │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  Program: solvency_verifier.aleo                   │  │
-│  │  ┌──────────────────────────────────────────────┐  │  │
-│  │  │  INPUT:  solvency_record, proof_commitment   │  │  │
-│  │  │  LOGIC:  verify_proof(proof) && check_state  │  │  │
-│  │  │  OUTPUT: verification_record (public mapping)│  │  │
-│  │  │          status: { solvent, timestamp }      │  │  │
-│  │  └──────────────────────────────────────────────┘  │  │
-│  └──────────────────────┬─────────────────────────────┘  │
-│                         │ CPI                            │
-│                         ▼                                │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  Program: audit_registry.aleo                      │  │
-│  │  ┌──────────────────────────────────────────────┐  │  │
-│  │  │  INPUT:  verification_record                 │  │  │
-│  │  │  LOGIC:  register_proof(commitment, entry)   │  │  │
-│  │  │  OUTPUT: audit_entry (public mapping)        │  │  │
-│  │  │          immutable on-chain audit trail      │  │  │
-│  │  └──────────────────────────────────────────────┘  │  │
-│  └────────────────────────────────────────────────────┘  │
-│                                                          │
-│  On-chain:  public mappings (commitment -> status)      │
-│  Off-chain: private Records (assets, liabilities, proof) │
-└─────────────────────────────────────────────────────────┘`}
+                code={`┌──────────────────────┐
+│ veritaszk_registry   │  org identity · credentials
+└──────────┬───────────┘
+           │ validates registration
+┌──────────▼───────────┐      ┌──────────────────────┐
+│  veritaszk_core      │─────►│  veritaszk_audit      │
+│  ZK proof engine     │      │  immutable audit trail│
+└──────────────────────┘      └──────────────────────┘
+
+All three deployed on Aleo Testnet
+Private Records (amounts) → encrypted on-chain
+Public Mappings → boolean result only`}
                 language="text"
               />
 

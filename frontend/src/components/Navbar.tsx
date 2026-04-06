@@ -1,54 +1,56 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useWallet } from "@/context/WalletContext";
-import { ConnectButton } from "@/components/ConnectButton";
 
 export function Navbar() {
-  const { wallet } = useWallet();
   const pathname = usePathname();
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(10,10,15,0.85)", backdropFilter: "blur(12px)" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(8,8,8,0.85)", backdropFilter: "blur(12px)" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px", height: "56px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: "2px", textDecoration: "none" }}>
-          <img src="/logo.svg" alt="VeritasZK" width={28} height={28} style={{ marginRight: "8px" }} />
-          <span style={{ fontSize: "20px", fontWeight: 700, color: "#00ff88" }}>Veritas</span>
-          <span style={{ fontSize: "20px", fontWeight: 700, color: "white" }}>ZK</span>
+          <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>VeritasZK</span>
         </Link>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
           {[
-            { href: "/organization", label: "Organization" },
-            { href: "/verify", label: "Verify" },
-            { href: "/dashboard", label: "Dashboard" },
+            { href: "/organization", label: "Prove" },
+            { href: "/verifier", label: "Verify" },
+            { href: "/public", label: "Dashboard" },
           ].map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               style={{
-                padding: "6px 14px",
-                borderRadius: "8px",
                 fontSize: "14px",
                 fontWeight: isActive(href) ? 600 : 400,
-                color: isActive(href) ? "#00ff88" : "rgba(255,255,255,0.5)",
-                background: isActive(href) ? "rgba(0,255,136,0.06)" : "transparent",
-                border: isActive(href) ? "1px solid rgba(0,255,136,0.2)" : "1px solid transparent",
+                color: isActive(href) ? "var(--accent-primary)" : "var(--text-secondary)",
                 textDecoration: "none",
-                transition: "all 0.2s",
+                transition: "color 0.2s",
               }}
+              onMouseEnter={e => { if (!isActive(href)) e.currentTarget.style.color = "var(--text-primary)"; }}
+              onMouseLeave={e => { if (!isActive(href)) e.currentTarget.style.color = "var(--text-secondary)"; }}
             >
               {label}
-              {label === "Organization" && wallet && (
-                <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#00ff88", marginLeft: "6px", verticalAlign: "middle" }} />
-              )}
             </Link>
           ))}
         </div>
 
-        <ConnectButton />
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <Link href="/docs" style={{ fontSize: "13px", color: "var(--text-tertiary)", textDecoration: "none" }}>Docs</Link>
+          <Link href="/vision" style={{ fontSize: "13px", color: "var(--text-tertiary)", textDecoration: "none" }}>Vision</Link>
+          <a href="https://github.com/Vinaystwt/veritaszk" target="_blank" rel="noopener noreferrer" style={{ fontSize: "13px", color: "var(--text-tertiary)", textDecoration: "none" }}>GitHub</a>
+          <Link
+            href="/organization"
+            style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "6px 14px", borderRadius: "6px", border: "1px solid var(--accent-primary)", color: "var(--accent-primary)", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "var(--accent-primary)"; e.currentTarget.style.color = "var(--bg-base)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--accent-primary)"; }}
+          >
+            Launch App
+          </Link>
+        </div>
       </div>
     </nav>
   );

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { WalletProvider } from "@/context/WalletContext";
 import { Navbar } from "@/components/Navbar";
 
 export const metadata: Metadata = {
@@ -15,13 +14,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body style={{ background: "#0a0a0f", fontFamily: "Space Grotesk, sans-serif" }}>
-        <WalletProvider>
-          <Navbar />
-          <main style={{ paddingTop: "64px" }}>
-            {children}
-          </main>
-        </WalletProvider>
+      <body style={{ background: "var(--bg-base)", color: "var(--text-primary)", fontFamily: "var(--font-sans)" }}>
+        <Navbar />
+        <main style={{ paddingTop: "56px" }}>
+          {children}
+        </main>
       </body>
     </html>
   );

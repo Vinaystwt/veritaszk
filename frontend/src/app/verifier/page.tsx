@@ -14,7 +14,14 @@ import {
   Layers,
   History,
   CheckCircle2,
+  Clipboard,
+  Zap,
+  Unlock,
 } from "lucide-react";
+
+function ClipboardIcon() { return <Clipboard size={20} />; }
+function ZapIcon() { return <Zap size={20} />; }
+function UnlockIcon() { return <Unlock size={20} />; }
 import { verifySolvency, getAuditTrail } from "veritaszk-sdk";
 import type { SolvencyStatus, AuditEvent } from "veritaszk-sdk";
 import GlassCard from "@/components/ui/GlassCard";
@@ -834,20 +841,46 @@ export default function VerifierPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ delay: 0.3 }}
-              style={{ textAlign: "center", padding: "48px 0" }}
+              style={{ marginTop: "48px" }}
             >
-              <p
-                style={{
-                  fontSize: "14px",
-                  color: "var(--text-tertiary)",
-                  lineHeight: 1.6,
-                  maxWidth: "400px",
-                  margin: "0 auto",
-                }}
-              >
-                Enter a commitment address above to verify any
-                organization&apos;s zero-knowledge solvency proof on-chain.
-              </p>
+              {/* How to verify */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "24px", marginBottom: "40px" }}>
+                {[
+                  { icon: <ClipboardIcon />, title: "Paste any commitment", desc: "Copy the commitment from the organization portal" },
+                  { icon: <ZapIcon />, title: "Get instant result", desc: "Cryptographic confirmation in seconds" },
+                  { icon: <UnlockIcon />, title: "No wallet required", desc: "Anyone can verify — no permissions needed" },
+                ].map((item, i) => (
+                  <div key={i} style={{ textAlign: "center", padding: "20px 16px" }}>
+                    <div style={{ color: "var(--accent-primary)", marginBottom: "12px", display: "flex", justifyContent: "center" }}>{item.icon}</div>
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "6px" }}>{item.title}</div>
+                    <div style={{ fontSize: "12px", color: "var(--text-tertiary)", lineHeight: 1.5 }}>{item.desc}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Try an example */}
+              <div style={{ padding: "24px" }}>
+                <GlassCard>
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "16px" }}>
+                      Try verifying a sample organization:
+                    </p>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", flexWrap: "wrap" }}>
+                      <code style={{ fontSize: "13px", color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", padding: "6px 12px", borderRadius: "6px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                        aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00
+                      </code>
+                      <button
+                        onClick={() => {
+                          setInput("aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00");
+                        }}
+                        style={{ padding: "8px 16px", borderRadius: "6px", background: "var(--accent-primary)", color: "#080808", fontWeight: 600, fontSize: "13px", border: "none", cursor: "pointer" }}
+                      >
+                        Verify this org →
+                      </button>
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

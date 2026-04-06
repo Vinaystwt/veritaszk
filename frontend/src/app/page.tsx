@@ -124,37 +124,18 @@ export default function Home() {
         </>
       )}
 
-      {/* ─── NAV ─────────────────────────────────────────────────── */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 50, backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border-subtle)", background: "rgba(8,8,8,0.8)" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.02em" }}>VeritasZK</span>
-          <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-            <Link href="/docs" style={{ fontSize: "14px", color: "var(--text-secondary)", textDecoration: "none" }}>Docs</Link>
-            <Link href="/vision" style={{ fontSize: "14px", color: "var(--text-secondary)", textDecoration: "none" }}>Vision</Link>
-            <a href="https://github.com/Vinaystwt/veritaszk" target="_blank" rel="noopener noreferrer" style={{ fontSize: "14px", color: "var(--text-secondary)", textDecoration: "none" }}>GitHub</a>
-            <Link href="/organization"
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 18px", borderRadius: "8px", border: "1px solid var(--accent-primary)", color: "var(--accent-primary)", fontWeight: 600, fontSize: "14px", textDecoration: "none" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "var(--accent-primary)"; e.currentTarget.style.color = "#080808"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--accent-primary)"; }}
-            >
-              Launch App <ArrowRight size={14} />
-            </Link>
-          </div>
-        </div>
-      </nav>
-
       {/* ─── HERO ────────────────────────────────────────────────── */}
-      <section style={{ position: "relative", zIndex: 1, minHeight: "90vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", textAlign: "center" }}>
+      <section style={{ position: "relative", zIndex: 1, minHeight: "85vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px 60px", textAlign: "center" }}>
 
-        <motion.div initial="hidden" animate="visible" custom={0} variants={fadeUp} style={{ marginBottom: "24px" }}>
+        <motion.div initial="hidden" animate="visible" custom={0} variants={fadeUp} style={{ marginBottom: "20px" }}>
           <span style={{ display: "inline-block", padding: "6px 16px", borderRadius: "100px", border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.06)", color: "var(--accent-primary)", fontSize: "13px", fontWeight: 500, letterSpacing: "0.05em", fontFamily: "var(--font-mono)" }}>
             Zero-Knowledge · Aleo Testnet · Three-Program Protocol
           </span>
         </motion.div>
 
-        <motion.h1 initial="hidden" animate="visible" custom={1} variants={fadeUp} style={{ fontSize: "clamp(48px, 8vw, 80px)", fontWeight: 700, lineHeight: 1.05, letterSpacing: "-0.03em", maxWidth: "900px", marginBottom: "24px" }}>
-          Prove Solvency.{" "}
-          <span style={{ color: "var(--accent-primary)" }}>Reveal Nothing.</span>
+        <motion.h1 initial="hidden" animate="visible" custom={1} variants={fadeUp} style={{ fontSize: "clamp(48px, 8vw, 80px)", fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.03em", maxWidth: "900px", marginBottom: "24px" }}>
+          <span style={{ display: "block" }}>Prove Solvency.</span>
+          <span style={{ display: "block", color: "var(--accent-primary)" }}>Reveal Nothing.</span>
         </motion.h1>
 
         <motion.p initial="hidden" animate="visible" custom={2} variants={fadeUp} style={{ fontSize: "clamp(16px, 2.5vw, 20px)", color: "var(--text-secondary)", maxWidth: "600px", lineHeight: 1.7, marginBottom: "48px" }}>
