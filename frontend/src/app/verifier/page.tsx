@@ -159,7 +159,7 @@ export default function VerifierPage() {
 
   return (
     <div
-      className="-mx-6 md:-mx-8"
+      className="-mx-4 sm:-mx-6 md:-mx-10 lg:-mx-16"
       style={{
         minHeight: "100vh",
         display: "flex",

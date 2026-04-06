@@ -104,7 +104,7 @@ export default function Home() {
   };
 
   return (
-    <div className="-mx-6 md:-mx-8" style={{ minHeight: "100vh", background: "var(--bg-base)", position: "relative", overflow: "hidden" }}>
+    <div className="-mx-4 sm:-mx-6 md:-mx-10 lg:-mx-16" style={{ minHeight: "100vh", background: "var(--bg-base)", position: "relative", overflow: "hidden" }}>
 
       {/* Dot grid background */}
       <div style={{ position: "fixed", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)", backgroundSize: "32px 32px", pointerEvents: "none", zIndex: 0 }} />
@@ -179,12 +179,16 @@ export default function Home() {
 
       {/* ─── LIVE STATS BAR ──────────────────────────────────────── */}
       <section style={{ position: "relative", zIndex: 1, borderTop: "1px solid var(--border-subtle)", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "16px 24px 24px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px", textAlign: "center" }}>
-          <StatsCounter value={stats.proofs} label="Proofs Generated" isLive />
-          <div style={{ borderLeft: "1px solid var(--border-subtle)", borderRight: "1px solid var(--border-subtle)" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "16px 24px 24px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px" }}>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <StatsCounter value={stats.proofs} label="Proofs Generated" isLive />
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", borderLeft: "1px solid var(--border-subtle)", borderRight: "1px solid var(--border-subtle)", paddingLeft: "32px" }}>
             <StatsCounter value={stats.verifications} label="Verifications" isLive />
           </div>
-          <StatsCounter value={stats.orgs} label="Organizations" isLive />
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <StatsCounter value={stats.orgs} label="Organizations" isLive />
+          </div>
         </div>
       </section>
 
@@ -314,15 +318,15 @@ export default function Home() {
 
             {/* Explorer links */}
             <div className="flex gap-6 text-xs text-emerald-400 mt-2">
-              <a href="https://explorer.aleo.org/program/veritaszk_registry.aleo"
+              <a href="https://testnet.explorer.provable.com/program/veritaszk_registry.aleo"
                 target="_blank" rel="noopener noreferrer" className="hover:underline">
                 Registry →
               </a>
-              <a href="https://explorer.aleo.org/program/veritaszk_core.aleo"
+              <a href="https://testnet.explorer.provable.com/program/veritaszk_core.aleo"
                 target="_blank" rel="noopener noreferrer" className="hover:underline">
                 Core →
               </a>
-              <a href="https://explorer.aleo.org/program/veritaszk_audit.aleo"
+              <a href="https://testnet.explorer.provable.com/program/veritaszk_audit.aleo"
                 target="_blank" rel="noopener noreferrer" className="hover:underline">
                 Audit →
               </a>

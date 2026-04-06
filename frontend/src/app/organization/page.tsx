@@ -1092,8 +1092,8 @@ export default function OrganizationPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] py-8">
-      <div className="mx-auto max-w-6xl">
+    <div className="bg-[var(--bg-base)] py-8">
+      <div className="mx-auto max-w-6xl px-2 sm:px-4">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
