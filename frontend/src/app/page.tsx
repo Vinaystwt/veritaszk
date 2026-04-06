@@ -128,7 +128,7 @@ export default function Home() {
       {/* ─── HERO ────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden">
         <MatrixRain />
-        <section style={{ position: "relative", zIndex: 1, minHeight: "85vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px 32px", textAlign: "center" }}>
+        <section style={{ position: "relative", zIndex: 1, minHeight: "85vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px 16px", textAlign: "center" }}>
 
         <motion.div initial="hidden" animate="visible" custom={0} variants={fadeUp} style={{ marginBottom: "20px" }}>
           <span style={{ display: "inline-block", padding: "6px 16px", borderRadius: "100px", border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.06)", color: "var(--accent-primary)", fontSize: "13px", fontWeight: 500, letterSpacing: "0.05em", fontFamily: "var(--font-mono)" }}>
@@ -170,16 +170,12 @@ export default function Home() {
           <span>·</span>
           <span>Open Source</span>
         </motion.div>
-
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} style={{ position: "absolute", bottom: "40px", left: "50%", transform: "translateX(-50%)" }}>
-          <div style={{ width: "1px", height: "60px", background: "linear-gradient(to bottom, rgba(16,185,129,0.4), transparent)" }} />
-        </motion.div>
       </section>
       </div>
 
       {/* ─── LIVE STATS BAR ──────────────────────────────────────── */}
       <section style={{ position: "relative", zIndex: 1, borderTop: "1px solid var(--border-subtle)", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "16px 24px 24px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "8px 24px 20px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px" }}>
           <div style={{ display: "flex", justifyContent: "center" }}>
             <StatsCounter value={stats.proofs} label="Proofs Generated" isLive />
           </div>

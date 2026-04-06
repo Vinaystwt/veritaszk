@@ -17,21 +17,36 @@ export default function MatrixRain() {
     resize()
     window.addEventListener('resize', resize)
 
-    const chars = '01アイウエオカキクケコサシスセソ'
-    const fontSize = 14
+    const chars = '01アイウエカキク'
+    const fontSize = 20
     const cols = Math.floor(canvas.width / fontSize)
     const drops: number[] = Array(cols).fill(1)
+    // Only ~30% of columns are active at any time
+    const activeCols = new Set(
+      Array.from({ length: Math.floor(cols * 0.3) }, () =>
+        Math.floor(Math.random() * cols)
+      )
+    )
 
     const draw = () => {
-      ctx.fillStyle = 'rgba(8,8,8,0.08)'
+      // Fade previous frame
+      ctx.fillStyle = 'rgba(8,8,8,0.15)'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
-      ctx.fillStyle = '#10b981'
       ctx.font = `${fontSize}px monospace`
-      drops.forEach((y, i) => {
+
+      // Occasionally toggle columns
+      if (Math.random() < 0.02) {
+        const col = Math.floor(Math.random() * cols)
+        if (activeCols.has(col)) activeCols.delete(col)
+        else activeCols.add(col)
+      }
+
+      activeCols.forEach(i => {
         const char = chars[Math.floor(Math.random() * chars.length)]
-        ctx.globalAlpha = 0.6
-        ctx.fillText(char, i * fontSize, y * fontSize)
-        if (y * fontSize > canvas.height && Math.random() > 0.975) {
+        ctx.globalAlpha = 0.15
+        ctx.fillStyle = '#10b981'
+        ctx.fillText(char, i * fontSize, drops[i] * fontSize)
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
           drops[i] = 0
         }
         drops[i]++
@@ -39,7 +54,7 @@ export default function MatrixRain() {
       ctx.globalAlpha = 1
     }
 
-    const interval = setInterval(draw, 50)
+    const interval = setInterval(draw, 60)
     return () => {
       clearInterval(interval)
       window.removeEventListener('resize', resize)

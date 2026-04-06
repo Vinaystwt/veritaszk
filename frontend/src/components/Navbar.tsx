@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 export function Navbar() {
   const pathname = usePathname();
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
-  const isDashboardActive = pathname === "/public";
+  const isActive = (href: string) => {
+    if (href === "/public") return pathname === "/public";
+    return pathname === href || pathname.startsWith(href + "/");
+  };
 
   return (
     <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(8,8,8,0.85)", backdropFilter: "blur(12px)" }}>
@@ -20,26 +22,23 @@ export function Navbar() {
             { href: "/organization", label: "Prove" },
             { href: "/verifier", label: "Verify" },
             { href: "/public", label: "Dashboard" },
-          ].map(({ href, label }) => {
-            const active = href === "/public" ? isDashboardActive : isActive(href);
-            return (
+          ].map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               style={{
                 fontSize: "14px",
-                fontWeight: active ? 600 : 400,
-                color: active ? "var(--accent-primary)" : "var(--text-secondary)",
+                fontWeight: isActive(href) ? 600 : 400,
+                color: isActive(href) ? "var(--accent-primary)" : "var(--text-secondary)",
                 textDecoration: "none",
                 transition: "color 0.2s",
               }}
-              onMouseEnter={e => { if (!active) e.currentTarget.style.color = "var(--text-primary)"; }}
-              onMouseLeave={e => { if (!active) e.currentTarget.style.color = "var(--text-secondary)"; }}
+              onMouseEnter={e => { if (!isActive(href)) e.currentTarget.style.color = "var(--text-primary)"; }}
+              onMouseLeave={e => { if (!isActive(href)) e.currentTarget.style.color = "var(--text-secondary)"; }}
             >
               {label}
             </Link>
-            );
-          })}
+          ))}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>

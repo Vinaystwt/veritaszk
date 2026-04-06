@@ -21,12 +21,7 @@ function PullQuote({ children }: { children: React.ReactNode }) {
   return (
     <blockquote
       className="my-10 pl-6 pr-4 py-4 text-2xl font-light leading-relaxed italic"
-      style={{
-        borderLeft: '4px solid var(--accent-primary)',
-        color: 'var(--text-primary)',
-        background: 'var(--accent-primary-dim)',
-        borderRadius: '0 8px 8px 0',
-      }}
+      style={{ borderLeft: '4px solid var(--accent-primary)', color: 'var(--text-primary)' }}
     >
       {children}
     </blockquote>
@@ -50,7 +45,7 @@ export default function VisionPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center px-4 sm:px-6 pt-32 pb-20 text-center">
+      <section className="relative flex flex-col items-center justify-center pt-32 pb-20 text-center">
         <motion.div
           initial="hidden"
           animate="visible"
@@ -95,7 +90,7 @@ export default function VisionPage() {
         </motion.div>
       </section>
 
-      <div className="mx-auto max-w-[720px] px-4 sm:px-6">
+      <div className="mx-auto max-w-[720px]">
         {/* Section 1: The Problem With Proof of Reserves */}
         <motion.section
           initial="hidden"

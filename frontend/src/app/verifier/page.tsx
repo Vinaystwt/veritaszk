@@ -876,6 +876,61 @@ export default function VerifierPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ---- HOW VERIFICATION WORKS ---- */}
+        {!loading && !showResult && !error && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            style={{ marginTop: "64px" }}
+          >
+            <h2 style={{ fontSize: "20px", fontWeight: 600, color: "var(--text-primary)", textAlign: "center", marginBottom: "8px" }}>
+              How Verification Works
+            </h2>
+            <p style={{ fontSize: "14px", color: "var(--text-secondary)", textAlign: "center", marginBottom: "32px", maxWidth: "480px", margin: "0 auto 32px", lineHeight: 1.6 }}>
+              Every verification is cryptographic, instant, and requires no trust in any third party.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginBottom: "32px" }}>
+              {[
+                {
+                  step: "01",
+                  title: "Query the Chain",
+                  desc: "The verifier fetches the organization's solvency proof from Aleo's public mappings.",
+                },
+                {
+                  step: "02",
+                  title: "Validate Cryptographically",
+                  desc: "The proof is verified against on-chain state — no reliance on auditors or self-reported data.",
+                },
+                {
+                  step: "03",
+                  title: "View the Result",
+                  desc: "A simple solvent / not solvent status, with proof metadata and an immutable audit trail.",
+                },
+              ].map((item, i) => (
+                <GlassCard key={i} className="p-5">
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--accent-primary)", letterSpacing: "0.1em", marginBottom: "10px" }}>
+                    STEP {item.step}
+                  </div>
+                  <h3 style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "8px" }}>
+                    {item.title}
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                    {item.desc}
+                  </p>
+                </GlassCard>
+              ))}
+            </div>
+
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>
+                Built on Aleo's zero-knowledge proving system. No amounts, addresses, or positions are ever revealed.
+              </p>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

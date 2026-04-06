@@ -385,7 +385,7 @@ export default function PublicDashboardPage() {
         }}
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto py-10 px-2 sm:px-4">
+      <div className="relative z-10 max-w-7xl mx-auto py-10">
         {/* ─── HEADER ──────────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-8">
           <div>
