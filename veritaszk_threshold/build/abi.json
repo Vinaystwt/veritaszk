@@ -1,0 +1,257 @@
+{
+  "program": "veritaszk_threshold.aleo",
+  "structs": [
+    {
+      "path": [
+        "AssetBundle"
+      ],
+      "fields": [
+        {
+          "name": "native_credits",
+          "ty": {
+            "Primitive": {
+              "UInt": "U64"
+            }
+          }
+        },
+        {
+          "name": "stablecoin_usd",
+          "ty": {
+            "Primitive": {
+              "UInt": "U64"
+            }
+          }
+        },
+        {
+          "name": "btc_equivalent",
+          "ty": {
+            "Primitive": {
+              "UInt": "U64"
+            }
+          }
+        },
+        {
+          "name": "other_assets",
+          "ty": {
+            "Primitive": {
+              "UInt": "U64"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "records": [
+    {
+      "path": [
+        "TierProofRecord"
+      ],
+      "fields": [
+        {
+          "name": "owner",
+          "ty": {
+            "Primitive": "Address"
+          },
+          "mode": "None"
+        },
+        {
+          "name": "org_commitment",
+          "ty": {
+            "Primitive": "Field"
+          },
+          "mode": "None"
+        },
+        {
+          "name": "tier_achieved",
+          "ty": {
+            "Primitive": {
+              "UInt": "U8"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "name": "is_solvent",
+          "ty": {
+            "Primitive": "Boolean"
+          },
+          "mode": "None"
+        },
+        {
+          "name": "proof_nonce",
+          "ty": {
+            "Primitive": "Field"
+          },
+          "mode": "None"
+        }
+      ]
+    }
+  ],
+  "mappings": [
+    {
+      "name": "tier_results",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Primitive": {
+          "UInt": "U8"
+        }
+      }
+    },
+    {
+      "name": "tier_is_solvent",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Primitive": "Boolean"
+      }
+    },
+    {
+      "name": "tier_block",
+      "key": {
+        "Primitive": "Field"
+      },
+      "value": {
+        "Primitive": {
+          "UInt": "U32"
+        }
+      }
+    }
+  ],
+  "storage_variables": [],
+  "functions": [
+    {
+      "name": "prove_threshold",
+      "is_final": true,
+      "inputs": [
+        {
+          "name": "assets",
+          "ty": {
+            "Plaintext": {
+              "Struct": {
+                "path": [
+                  "AssetBundle"
+                ],
+                "program": "veritaszk_threshold.aleo"
+              }
+            }
+          },
+          "mode": "Private"
+        },
+        {
+          "name": "liabilities",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U64"
+              }
+            }
+          },
+          "mode": "Private"
+        },
+        {
+          "name": "org_commitment",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Private"
+        },
+        {
+          "name": "proof_nonce",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Private"
+        },
+        {
+          "name": "tier_target",
+          "ty": {
+            "Plaintext": {
+              "Primitive": {
+                "UInt": "U8"
+              }
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": {
+            "Record": {
+              "path": [
+                "TierProofRecord"
+              ],
+              "program": "veritaszk_threshold.aleo"
+            }
+          },
+          "mode": "None"
+        },
+        {
+          "ty": "Final",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "verify_tier",
+      "is_final": true,
+      "inputs": [
+        {
+          "name": "org_commitment",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Final",
+          "mode": "None"
+        }
+      ]
+    },
+    {
+      "name": "revoke_tier_proof",
+      "is_final": true,
+      "inputs": [
+        {
+          "name": "tier_proof",
+          "ty": {
+            "Record": {
+              "path": [
+                "TierProofRecord"
+              ],
+              "program": "veritaszk_threshold.aleo"
+            }
+          },
+          "mode": "Private"
+        },
+        {
+          "name": "org_commitment",
+          "ty": {
+            "Plaintext": {
+              "Primitive": "Field"
+            }
+          },
+          "mode": "Public"
+        }
+      ],
+      "outputs": [
+        {
+          "ty": "Final",
+          "mode": "None"
+        }
+      ]
+    }
+  ]
+}

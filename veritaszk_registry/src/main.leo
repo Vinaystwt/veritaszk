@@ -10,6 +10,18 @@ program veritaszk_registry.aleo {
     mapping delegation_registry: field => field;
     mapping org_registration_time: field => u32;
 
+    // ─── Wave 5: Name registry ───────────────────────────────────────
+    mapping name_registry: field => field;
+    mapping salt_to_commitment: field => field;
+
+    // ─── Wave 5: DelegateRecord ──────────────────────────────────────
+    record DelegateRecord {
+        owner: address,
+        delegate: address,
+        org_commitment: field,
+        expiry_height: u32,
+    }
+
     // ─── Transition 1: Register organization ─────────────────────────
     fn register_org(private org_name_hash: field, private salt: field) -> (field, Final) {
         let commitment: field = BHP256::hash_to_field(org_name_hash);
@@ -51,6 +63,36 @@ program veritaszk_registry.aleo {
         let verifier_key: field = BHP256::hash_to_field(verifier_address as field);
         return final {
             Mapping::set(verifier_credentials, verifier_key, false);
+        };
+    }
+
+    // ─── Wave 5 Transition 5: Delegate proof authority ───────────────
+    fn delegate_proof_authority(
+        private delegate_addr: address,
+        private org_commitment: field,
+        public expiry_blocks: u32
+    ) -> (DelegateRecord, Final) {
+        let delegation: DelegateRecord = DelegateRecord {
+            owner: self.caller,
+            delegate: delegate_addr,
+            org_commitment: org_commitment,
+            expiry_height: 0u32,
+        };
+        return (delegation, final {
+            let expiry: u32 = block.height + expiry_blocks;
+            let expiry_field: field = expiry as field;
+            Mapping::set(delegation_registry, org_commitment, expiry_field);
+        });
+    }
+
+    // ─── Wave 5 Transition 6: Register org name ──────────────────────
+    fn register_org_name(
+        private org_commitment: field,
+        public name_hash: field
+    ) -> Final {
+        return final {
+            Mapping::set(name_registry, org_commitment, name_hash);
+            Mapping::set(salt_to_commitment, name_hash, org_commitment);
         };
     }
 

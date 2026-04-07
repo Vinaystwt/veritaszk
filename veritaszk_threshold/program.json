@@ -1,0 +1,9 @@
+{
+  "program": "veritaszk_threshold.aleo",
+  "version": "0.1.0",
+  "description": "Programmable confidence tier range proofs for institutional solvency attestation",
+  "license": "MIT",
+  "leo": "4.0.0",
+  "dependencies": null,
+  "dev_dependencies": null
+}

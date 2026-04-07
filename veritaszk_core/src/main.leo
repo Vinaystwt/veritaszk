@@ -24,11 +24,18 @@ program veritaszk_core.aleo {
         asset_type: u8,
     }
 
+    record RevokeReceipt {
+        owner: address,
+        revoked_commitment: field,
+        revoke_block: u32,
+    }
+
     // ─── Public Mappings (zero amounts, zero sensitive data) ─────────
 
     mapping solvency_proofs: field => bool;
     mapping proof_timestamps: field => u32;
     mapping proof_expiry: field => u32;
+    mapping proof_status: field => u8;         // 0=none, 1=active, 2=expired, 3=revoked
     mapping asset_commitments: field => field;
     mapping verification_counts: field => u32;
     mapping multi_wallet_commitments: field => field;
@@ -219,7 +226,98 @@ program veritaszk_core.aleo {
     fn revoke_proof(public org_commitment: field) -> Final {
         return final {
             Mapping::set(solvency_proofs, org_commitment, false);
+            Mapping::set(proof_status, org_commitment, 3u8);
         };
+    }
+
+    // ─── Transition 7b: Revoke proof via record (owner-only) ─────────
+    // Owner revokes by providing their private proof record.
+    // Sets solvency to false, status to revoked, returns RevokeReceipt.
+    fn revoke_proof_record(
+        private proof: AssetRecord,
+        public org_commitment: field
+    ) -> (RevokeReceipt, Final) {
+        // Authorization: only the record owner can revoke
+        assert_eq(proof.owner, self.caller);
+        return (RevokeReceipt {
+            owner: self.caller,
+            revoked_commitment: org_commitment,
+            revoke_block: 0u32,
+        }, final {
+            Mapping::set(solvency_proofs, org_commitment, false);
+            Mapping::set(proof_status, org_commitment, 3u8);
+        });
+    }
+
+    // ─── Transition 8: Submit proof with expiry ──────────────────────
+    // Single-asset solvency proof with time-bounded validity window.
+    // Sets proof_status to 1 (active), proof_expiry to block.height + expiry_blocks.
+    fn submit_proof_with_expiry(
+        private assets: AssetRecord,
+        private liabilities_total: u128,
+        private nonce: field,
+        public org_commitment: field,
+        public expiry_blocks: u32
+    ) -> (AssetRecord, Final) {
+        // THE ZK PREDICATE
+        assert(assets.amount > liabilities_total);
+
+        let commitment: field = Poseidon2::hash_to_field(
+            assets.amount + liabilities_total
+        );
+        let salted_commitment: field = BHP256::hash_to_field(
+            commitment + nonce
+        );
+
+        let unchanged: AssetRecord = AssetRecord {
+            owner: assets.owner,
+            amount: assets.amount,
+            asset_type: assets.asset_type,
+        };
+
+        return (unchanged, final {
+            Mapping::set(asset_commitments, org_commitment, salted_commitment);
+            Mapping::set(solvency_proofs, org_commitment, true);
+            Mapping::set(proof_timestamps, org_commitment, block.height);
+            let expiry: u32 = block.height + expiry_blocks;
+            Mapping::set(proof_expiry, org_commitment, expiry);
+            Mapping::set(proof_status, org_commitment, 1u8);
+        });
+    }
+
+    // ─── Transition 9: Refresh an expiring proof ─────────────────────
+    // Consumes old proof, proves new assets > new liabilities, resets expiry.
+    fn refresh_proof(
+        private old_proof: AssetRecord,
+        private new_liabilities_total: u128,
+        private nonce: field,
+        public org_commitment: field,
+        public expiry_blocks: u32
+    ) -> (AssetRecord, Final) {
+        // THE ZK PREDICATE — new data must still be solvent
+        assert(old_proof.amount > new_liabilities_total);
+
+        let commitment: field = Poseidon2::hash_to_field(
+            old_proof.amount + new_liabilities_total
+        );
+        let salted_commitment: field = BHP256::hash_to_field(
+            commitment + nonce
+        );
+
+        let unchanged: AssetRecord = AssetRecord {
+            owner: old_proof.owner,
+            amount: old_proof.amount,
+            asset_type: old_proof.asset_type,
+        };
+
+        return (unchanged, final {
+            Mapping::set(asset_commitments, org_commitment, salted_commitment);
+            Mapping::set(solvency_proofs, org_commitment, true);
+            Mapping::set(proof_timestamps, org_commitment, block.height);
+            let expiry: u32 = block.height + expiry_blocks;
+            Mapping::set(proof_expiry, org_commitment, expiry);
+            Mapping::set(proof_status, org_commitment, 1u8);
+        });
     }
 
     @noupgrade

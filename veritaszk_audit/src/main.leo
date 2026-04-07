@@ -20,6 +20,22 @@ program veritaszk_audit.aleo {
     // key: org_commitment, value: block.height of most recent proof event
     mapping last_proof_block: field => u32;
 
+    // ─── Wave 5: Audit trail enhancements ────────────────────────────
+    // key: org_commitment, value: number of times this proof was verified
+    mapping verification_counts: field => u32;
+
+    // key: org_commitment, value: previous commitment in proof chain
+    mapping proof_history: field => field;
+
+    // ─── Wave 5: AuditRecord ─────────────────────────────────────────
+    record AuditRecord {
+        owner: address,
+        org_commitment: field,
+        tier_at_verification: u8,
+        block_verified: u32,
+        audit_nonce: field,
+    }
+
     // ─── Transition 1: Record a proof generation event ───────────────
     fn record_proof_event(
         public org_commitment: field,
@@ -50,6 +66,35 @@ program veritaszk_audit.aleo {
         );
         return final {
             Mapping::set(compliance_disclosures, disclosure_key, true);
+        };
+    }
+
+    // ─── Wave 5 Transition 4: Log a verification event ───────────────
+    fn log_verification(
+        private org_commitment: field,
+        private audit_nonce: field,
+        public tier: u8
+    ) -> (AuditRecord, Final) {
+        let audit: AuditRecord = AuditRecord {
+            owner: self.caller,
+            org_commitment: org_commitment,
+            tier_at_verification: tier,
+            block_verified: 0u32,
+            audit_nonce: audit_nonce,
+        };
+        return (audit, final {
+            let current: u32 = Mapping::get_or_use(verification_counts, org_commitment, 0u32);
+            Mapping::set(verification_counts, org_commitment, current + 1u32);
+        });
+    }
+
+    // ─── Wave 5 Transition 5: Link proof history chain ───────────────
+    fn link_proof_history(
+        private org_commitment: field,
+        private previous_commitment: field
+    ) -> Final {
+        return final {
+            Mapping::set(proof_history, org_commitment, previous_commitment);
         };
     }
 
