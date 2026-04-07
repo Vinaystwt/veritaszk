@@ -311,3 +311,150 @@ Phase 3: COMPLETE — all 8 pages built and live
 Phase 4: PENDING — competitor analysis + feature additions
 Phase 5: PENDING — complete frontend rebuild from scratch
 Phase 6: PENDING — testing + README + submission
+
+## Competitor Intelligence — April 7, 2026
+Source: Claude Code forensic analysis (GitHub, npm, live sites, Explorer)
+
+### NullPay (Primary Threat — scores W1=30, W2=27, W3=31, W4=30)
+Product: Private payment invoicing on Aleo
+Architecture: Single monolithic Leo program (zk_pay_proofs_privacy_v24.aleo)
+No CPI. 39 shipped features across 4 waves. 18 pages.
+
+Wave 5 additions (confirmed April 2-6):
+- NullCards — on-chain encrypted virtual debit card profiles
+- Telegram bot — full payment interface via Telegram
+- Dynamic fee estimation — program source loading + safety buffer
+- AuditVerify page — dedicated third-party audit verification
+- GlobePulse — cobe animated globe on hero
+
+Technical details:
+- 10 transitions in single contract
+- 3 public mappings: invoices, salt_to_invoice, card_lookup
+- Private Records: Invoice, PayerReceipt, MerchantReceipt,
+  BurnerWalletRecord, CardProfileRecord, GiftCardRecord
+- Privacy primitives: transfer_private, BHP256 hashing, AES-256-GCM
+- Backend: DigitalOcean (NOT a true chain indexer — wraps Provable API)
+- Supabase Realtime for notifications
+- SDK + CLI + MCP all published on npm
+- No confirmed demo mode without wallet
+
+Privacy vulnerabilities:
+- Merchant addresses are BHP256 HASHED, not truly private
+- Single encryption key concern since Wave 1 (project-controlled)
+- Relayer has access to all off-chain merchant/payer data
+- Invoice amounts hash-verifiable if known
+
+Frontend aesthetic:
+- Background: #080808, accent: orange #F97316
+- Grain texture (3.2% opacity), glassmorphism cards
+- Framer Motion animations (fadeInUp, staggered, custom spring easing)
+- Cobe dotted globe, Reddit marquee, flashlight hero effect
+- Described as "premium dark cyberpunk fintech"
+
+Key weaknesses we can exploit:
+1. No true chain indexer (backend is a relayer + scanner proxy)
+2. Single monolithic program — no CPI architecture
+3. Hash ≠ privacy (merchant addresses verifiable)
+4. Single encryption key (Alex flagged since Wave 1)
+5. No demo mode without wallet
+
+### Veiled Markets (Secondary Threat, Rising — scores W1=21, W2=23, W3=28)
+Product: Privacy-preserving prediction market (FPMM AMM)
+Architecture: 5 Leo programs (most in buildathon history)
+121 total transitions. 18+ pages. 40+ components.
+
+Wave 5 additions (confirmed April 5):
+- Parlay betting — 26 transitions, cross-market combined bets
+- ParlaySlip, ParlayClaimModal, ParlayConfirmModal components
+- @veiled-markets/sdk with parlay client + tests
+- Governance v4 improvements — resolver stats, committee voting
+- CryptoTickerStrip + CryptoPriceChart (Chainlink proxy)
+
+Technical details:
+- 5 programs: 3 market (ALEO, USDCx, USAD) + 1 governance + 1 parlay
+- CPI: governance imports all 3 market programs
+- Parlay reads market resolution from market mappings (optimistic)
+- Privacy: buy inputs ZK-encrypted, market questions/prices PUBLIC
+- Indexer: STUB — market data is hardcoded, not real polling
+- SDK with tests (contract-math.test.ts, parlay.test.ts, utils.test.ts)
+
+Frontend aesthetic:
+- Gold accent #c9a84c, background #08090c
+- Light mode supported
+- "Premium gold Bloomberg terminal meets sports betting app"
+
+Key weaknesses we can exploit:
+1. Indexer is a hardcoded stub
+2. Privacy structurally limited — market questions/odds must be public
+3. UI was called "bland/generic" in waves 1-3
+
+### ZKPerp (Low Threat — scores W1=0, W2=30, W3=17)
+Repository not locatable as of April 7. Extreme score volatility
+pattern. Unlikely to be a top-3 threat.
+
+### New Entrants
+None found in the solvency/treasury proof vertical.
+VeritasZK remains the ONLY project in this space across all 5 waves.
+
+### Competitive Positioning Summary
+VeritasZK advantages over both competitors:
+1. Uncontested vertical — no other solvency/PoR project in buildathon
+2. Multi-program CPI architecture (registry ← core → audit)
+3. Stronger privacy: pure private Records, no hashes, no off-chain keys
+4. FTX/PoR narrative — most documented real-world pain in buildathon
+5. If threshold tiers ship: named novel mechanism Alex has never seen
+
+What both competitors have that we don't:
+1. True demo mode without wallet (NullPay lacks this too, but VM shows
+   public market data without wallet)
+2. Published SDK + CLI + MCP working end-to-end (we have all 3, but
+   theirs have been tested across 4 waves)
+3. Live backend infrastructure (NullPay on DigitalOcean, VM on various)
+4. More pages (18 each vs our 8 — but quality > quantity)
+
+### Updated Execution Plan (Priority Order)
+PHASE A — veritaszk_threshold.aleo (HIGHEST PRIORITY)
+  Named novel mechanism. Maps to Basel III/Solvency II.
+  4 tiers: Standard (1.0x), Verified (1.5x), Strong (2.0x), Institutional (3.0x)
+  Public output: tier number + is_solvent boolean only.
+  Expected impact: Privacy 7.5 → 9/10 = +3.0 raw points.
+
+PHASE B — REST API Indexer on Railway
+  Node.js polling service reading Aleo testnet mappings every 30s.
+  Endpoints: /api/proofs, /api/proofs/:commitment, /api/tiers,
+             /api/stats, /api/health
+  Both competitors lack a TRUE chain indexer with queryable REST API.
+  Expected impact: Tech 7.5 → 9/10 = +1.5 raw points.
+
+PHASE C — Complete frontend rebuild from scratch
+  After Phase A and B are done.
+  Quality bar: NullPay's "premium dark cyberpunk fintech" aesthetic.
+  QWEN makes all design decisions autonomously.
+  Must avoid "bland and generic" — Alex's most common dock.
+
+PHASE D — Testing and submission (April 12, 5 PM deadline)
+  Shield Wallet end-to-end testing
+  Bot Railway deployment
+  README update for Wave 5
+  Demo video (Loom)
+  AKINDO submission
+
+### Probability Assessment (Post-Analysis)
+Without critical additions (threshold + indexer):
+  Projected score: 27-29
+  #1 probability: 12-18%
+  Top 3 probability: 60-70%
+
+With both shipped and working cleanly:
+  Projected score: 33-36
+  #1 probability: 45-55%
+  Top 3 probability: 80-85%
+
+Three things that determine win/lose:
+1. Does Alex recognize threshold tiers as a named novel mechanism?
+   → "Programmable solvency confidence tier range proof over private
+     financial data mapping to Basel III ratios"
+2. Is the REST API indexer live and queryable on April 12?
+   → GET /api/proofs must return data on live Railway URL
+3. Is the frontend distinctive enough to avoid "bland and generic"?
+   → NullPay and VM both have strong visual identities
