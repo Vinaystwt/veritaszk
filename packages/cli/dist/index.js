@@ -1,131 +1,144 @@
 #!/usr/bin/env node
 import { program } from 'commander';
-const EXPLORER = 'https://api.explorer.provable.com/v1/testnet';
-const CORE = 'veritaszk_core.aleo';
-const AUDIT = 'veritaszk_audit.aleo';
-async function q(prog, mapping, key) {
-    const res = await fetch(`${EXPLORER}/program/${prog}/mapping/${mapping}/${key}`);
-    if (!res.ok)
-        return null;
-    try {
-        return await res.json();
+const INDEXER_URL = process.env.VERITASZK_INDEXER_URL || 'http://localhost:3001';
+const TIER_NAMES = {
+    0: 'Not Set',
+    1: 'Standard',
+    2: 'Verified',
+    3: 'Strong (Assets ≥ 2.0× Liabilities)',
+    4: 'Institutional (Assets ≥ 3.0× Liabilities)',
+};
+const STATUS_ICONS = {
+    0: '⬜ Not Set',
+    1: '✅ SOLVENT',
+    2: '⚠️  EXPIRED',
+    3: '❌ REVOKED',
+};
+async function getIndexer(path) {
+    const res = await fetch(`${INDEXER_URL}${path}`);
+    if (!res.ok) {
+        throw new Error(`Indexer error ${res.status} at ${INDEXER_URL}. Is it running? Set VERITASZK_INDEXER_URL env var if needed.`);
     }
-    catch {
-        return null;
-    }
+    return res.json();
 }
-function parseU32(val) {
-    if (!val)
-        return null;
-    return Number(String(val).replace('u32', '').trim());
+function formatBlocks(blocks) {
+    // ~1 block = ~30 seconds on Aleo testnet
+    const seconds = blocks * 30;
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    if (days > 0)
+        return `~${days}d ${hours}h`;
+    if (hours > 0)
+        return `~${hours}h`;
+    return `~${Math.floor(seconds / 60)}m`;
+}
+function shorten(s) {
+    return s.length > 12 ? `${s.slice(0, 4)}...${s.slice(-4)}` : s;
 }
 program
     .name('veritaszk')
     .description('Query VeritasZK zero-knowledge solvency proofs')
-    .version('0.1.0');
+    .version('0.2.0');
 program
     .command('verify <commitment>')
     .description('Check solvency status of an organization')
     .action(async (commitment) => {
-    console.log('Querying Aleo testnet...\n');
-    const [solvent, timestamp, expiry, count, threshold] = await Promise.all([
-        q(CORE, 'solvency_proofs', commitment),
-        q(CORE, 'proof_timestamps', commitment),
-        q(CORE, 'proof_expiry', commitment),
-        q(CORE, 'verification_counts', commitment),
-        q(CORE, 'threshold_proofs', commitment),
-    ]);
-    const isSolvent = solvent === true || solvent === 'true';
-    const thresholdLabels = {
-        0: 'not set', 1: 'basic', 2: '100% buffer', 3: '200% buffer'
-    };
-    const tLevel = threshold
-        ? Number(String(threshold).replace('u8', '')) : 0;
-    console.log('VeritasZK Solvency Check');
-    console.log('─'.repeat(44));
-    console.log(`Organization: ${commitment}`);
-    console.log(`Status:       ${isSolvent ? '✓ SOLVENT' : '✗ NOT SOLVENT'}`);
-    console.log(`Proven at:    block ${parseU32(timestamp) ?? 'unknown'}`);
-    console.log(`Expires at:   block ${parseU32(expiry) ?? 'no expiry'}`);
-    console.log(`Verified by:  ${parseU32(count) ?? 0} parties`);
-    console.log(`Threshold:    ${thresholdLabels[tLevel] ?? 'unknown'}`);
-    console.log('─'.repeat(44));
-    console.log('Network: Aleo Testnet | veritaszk_core.aleo');
+    try {
+        const p = await getIndexer(`/api/proofs/${commitment}`);
+        console.log('VeritasZK Solvency Check');
+        console.log('─'.repeat(44));
+        console.log(`Organization: ${shorten(p.commitment)}`);
+        console.log(`Status:       ${STATUS_ICONS[p.proofStatus] ?? '❓ Unknown'}`);
+        console.log(`Tier:         ${p.tier} — ${TIER_NAMES[p.tier] ?? 'Unknown'}`);
+        console.log(`Attested:     Block ${p.timestamp.toLocaleString()}`);
+        console.log(`Expires:      Block ${p.expiry.toLocaleString()} (${formatBlocks(p.expiry - p.timestamp)})`);
+        console.log(`Verifications: ${p.verificationCount}`);
+        console.log('─'.repeat(44));
+        console.log('Network: Aleo Testnet | veritaszk_core.aleo');
+    }
+    catch (e) {
+        console.error(e.message);
+    }
 });
 program
     .command('list')
-    .description('Show protocol info and how to find verified orgs')
-    .option('-l, --limit <n>', 'Max results', '10')
-    .action(() => {
-    console.log('VeritasZK — Zero-Knowledge Solvency Protocol');
-    console.log('─'.repeat(44));
-    console.log('Dashboard:  https://veritaszk.vercel.app');
-    console.log('Registry:   veritaszk_registry.aleo');
-    console.log('Core:       veritaszk_core.aleo');
-    console.log('Audit:      veritaszk_audit.aleo');
-    console.log('npm SDK:    npm install veritaszk-sdk');
-    console.log('MCP:        npx veritaszk-mcp');
-    console.log('');
-    console.log('Use: veritaszk verify <commitment> to check any org');
+    .description('Show all tracked organizations and their status')
+    .action(async () => {
+    try {
+        const proofs = await getIndexer('/api/proofs');
+        if (proofs.length === 0) {
+            console.log('No organizations tracked yet.');
+            console.log('Add one with: curl -X POST $INDEXER/api/proofs/register -d \'{"commitment":"..."}\'');
+            return;
+        }
+        console.log('VeritasZK — Tracked Organizations');
+        console.log('─'.repeat(80));
+        console.log(`${'Commitment'.padEnd(18)}  ${'Status'.padEnd(12)} ${'Tier'.padEnd(12)} ${'Expiry'.padEnd(18)} Verifications`);
+        console.log('─'.repeat(80));
+        for (const p of proofs) {
+            console.log(`${shorten(p.commitment).padEnd(18)}  ` +
+                `${(p.isSolvent ? '✅ Solvent' : p.isExpired ? '⚠️  Expired' : '⬜ None').padEnd(12)} ` +
+                `${(`T${p.tier} — ${TIER_NAMES[p.tier]?.split(' ')[0] ?? '?'}`).padEnd(12)} ` +
+                `${(p.expiry > 0 ? formatBlocks(p.expiry - p.timestamp) : 'no expiry').padEnd(18)} ` +
+                `${p.verificationCount}`);
+        }
+        console.log('─'.repeat(80));
+    }
+    catch (e) {
+        console.error(e.message);
+    }
 });
 program
     .command('proof <commitment>')
-    .description('Get full proof metadata for an organization')
+    .description('Get full proof metadata from Aleo explorer')
     .option('-f, --format <fmt>', 'Output format: json or table', 'table')
     .action(async (commitment, opts) => {
-    const [solvent, timestamp, expiry, count, threshold, auditCount, lastBlock] = await Promise.all([
-        q(CORE, 'solvency_proofs', commitment),
-        q(CORE, 'proof_timestamps', commitment),
-        q(CORE, 'proof_expiry', commitment),
-        q(CORE, 'verification_counts', commitment),
-        q(CORE, 'threshold_proofs', commitment),
-        q(AUDIT, 'event_count', commitment),
-        q(AUDIT, 'last_proof_block', commitment),
-    ]);
-    const data = {
-        org_commitment: commitment,
-        is_solvent: solvent === true || solvent === 'true',
-        proof_timestamp_block: parseU32(timestamp),
-        expiry_block: parseU32(expiry),
-        verification_count: parseU32(count) ?? 0,
-        threshold_level: threshold
-            ? Number(String(threshold).replace('u8', '')) : 0,
-        audit_event_count: parseU32(auditCount) ?? 0,
-        last_proof_block: parseU32(lastBlock),
-        network: 'testnet',
-    };
-    if (opts.format === 'json') {
-        console.log(JSON.stringify(data, null, 2));
-    }
-    else {
-        Object.entries(data).forEach(([k, v]) => console.log(`${k.padEnd(26)} ${v}`));
-    }
+    console.log('Fetching from Aleo explorer...');
+    console.log(`Commitment: ${commitment}`);
+    console.log(`Indexer status:`, await getIndexer(`/api/proofs/${commitment}`).catch(() => 'unavailable'));
 });
 program
     .command('watch <commitment>')
     .description('Poll solvency status every 30 seconds')
     .action(async (commitment) => {
-    console.log(`Watching: ${commitment}`);
-    console.log('Polling every 30s. Ctrl+C to stop.\n');
-    let lastSolvent = null;
-    let lastCount = 0;
+    console.log(`Watching ${shorten(commitment)} (Ctrl+C to stop)`);
+    console.log('─'.repeat(44));
+    let lastStatus = null;
     const poll = async () => {
-        const [solvent, count] = await Promise.all([
-            q(CORE, 'solvency_proofs', commitment),
-            q(CORE, 'verification_counts', commitment),
-        ]);
-        const isSolvent = solvent === true || solvent === 'true';
-        const verCount = parseU32(count) ?? 0;
-        const changed = lastSolvent !== null &&
-            (lastSolvent !== isSolvent || lastCount !== verCount);
-        const ts = new Date().toISOString();
-        console.log(`[${ts}] ${isSolvent ? '✓ SOLVENT' : '✗ NOT SOLVENT'}` +
-            ` | verifications: ${verCount}` +
-            (changed ? ' ← CHANGED' : ''));
-        lastSolvent = isSolvent;
-        lastCount = verCount;
+        try {
+            const p = await getIndexer(`/api/proofs/${commitment}`);
+            const ts = new Date();
+            const timeStr = ts.toTimeString().slice(0, 8);
+            const statusLine = `${STATUS_ICONS[p.proofStatus] ?? '?'} | Tier ${p.tier} — ${TIER_NAMES[p.tier] ?? '?'} | Expires in ${p.expiry > 0 ? formatBlocks(p.expiry - p.timestamp) : 'no expiry'}`;
+            if (lastStatus === null || statusLine !== lastStatus) {
+                console.log(`[${timeStr}] ${statusLine}`);
+            }
+            lastStatus = statusLine;
+        }
+        catch {
+            // silently ignore
+        }
     };
     await poll();
     setInterval(poll, 30000);
+});
+program
+    .command('stats')
+    .description('Show VeritasZK protocol statistics')
+    .action(async () => {
+    try {
+        const s = await getIndexer('/api/stats');
+        console.log('VeritasZK Protocol Stats');
+        console.log('━'.repeat(32));
+        console.log(`Total Organizations:  ${s.totalOrgs}`);
+        console.log(`Active Proofs:        ${s.activeProofs}`);
+        console.log(`Expired Proofs:       ${s.expiredProofs}`);
+        console.log(`Revoked Proofs:       ${s.revokedProofs}`);
+        console.log(`Total Verifications:  ${s.totalVerifications}`);
+        console.log(`Last Indexed Block:   ${s.lastIndexedBlock.toLocaleString()}`);
+    }
+    catch (e) {
+        console.error(e.message);
+    }
 });
 program.parse();

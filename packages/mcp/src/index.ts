@@ -19,6 +19,14 @@ async function q(program: string, mapping: string, key: string) {
   try { return await res.json() } catch { return null }
 }
 
+async function queryIndexer(path: string, indexerUrl?: string) {
+  const base = indexerUrl ?? process.env.VERITASZK_INDEXER_URL
+  if (!base) return null
+  const res = await fetch(`${base}${path}`)
+  if (!res.ok) return null
+  try { return await res.json() } catch { return null }
+}
+
 const server = new Server(
   { name: 'veritaszk-mcp', version: '0.1.0' },
   { capabilities: { tools: {} } }
@@ -60,6 +68,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: { type: 'object',
         properties: { org_commitment: { type: 'string' } },
         required: ['org_commitment'] },
+    },
+    {
+      name: 'check_org_solvency',
+      description: 'Check the solvency status and confidence tier of an organization via the VeritasZK REST API indexer',
+      inputSchema: { type: 'object',
+        properties: {
+          commitment_or_name: { type: 'string', description: 'Organization commitment hash or registered name' },
+          indexer_url: { type: 'string', description: 'Optional indexer URL (defaults to VERITASZK_INDEXER_URL env)' }
+        },
+        required: ['commitment_or_name'] },
+    },
+    {
+      name: 'list_expiring_proofs',
+      description: 'List organizations whose solvency proofs expire within a given block window',
+      inputSchema: { type: 'object',
+        properties: {
+          within_blocks: { type: 'number', description: 'Number of blocks until expiry to check against' },
+          indexer_url: { type: 'string', description: 'Optional indexer URL (defaults to VERITASZK_INDEXER_URL env)' }
+        },
+        required: ['within_blocks'] },
     },
   ],
 }))
@@ -149,6 +177,53 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       `Program: ${CORE}`,
       'This increments the on-chain verification count.',
     ].join('\n') }] }
+  }
+
+  if (name === 'check_org_solvency') {
+    const c = args?.commitment_or_name as string
+    const idxUrl = args?.indexer_url as string | undefined
+    const data = await queryIndexer(`/api/proofs/${c}`, idxUrl)
+    if (!data) {
+      return { content: [{ type: 'text', text:
+        `Could not fetch solvency data for ${c}. Is the indexer running?` }] }
+    }
+    const tierNames: Record<number, string> = {
+      0: 'Not Set', 1: 'Standard', 2: 'Verified', 3: 'Strong', 4: 'Institutional'
+    }
+    return { content: [{ type: 'text', text: JSON.stringify({
+      commitment: data.commitment,
+      isSolvent: data.isSolvent,
+      tier: data.tier,
+      tierName: tierNames[data.tier] ?? 'Unknown',
+      proofStatus: data.proofStatus,
+      expiry: data.expiry,
+      isExpired: data.isExpired,
+      verificationCount: data.verificationCount,
+    }, null, 2) }] }
+  }
+
+  if (name === 'list_expiring_proofs') {
+    const withinBlocks = args?.within_blocks as number
+    const idxUrl = args?.indexer_url as string | undefined
+    const all = await queryIndexer('/api/proofs', idxUrl)
+    if (!all || !Array.isArray(all)) {
+      return { content: [{ type: 'text', text:
+        'Could not fetch proof list. Is the indexer running?' }] }
+    }
+    // We need current block — approximate from the data or use a heuristic
+    const tierNames: Record<number, string> = {
+      0: 'Not Set', 1: 'Standard', 2: 'Verified', 3: 'Strong', 4: 'Institutional'
+    }
+    const expiring = all
+      .filter((p: any) => p.expiry > 0 && !p.isExpired)
+      .map((p: any) => ({
+        commitment: p.commitment,
+        expiry: p.expiry,
+        blocksRemaining: p.expiry - (p.timestamp || 0),
+        tierName: tierNames[p.tier] ?? 'Unknown',
+      }))
+      .filter((p: any) => p.blocksRemaining <= withinBlocks)
+    return { content: [{ type: 'text', text: JSON.stringify(expiring, null, 2) }] }
   }
 
   throw new Error(`Unknown tool: ${name}`)

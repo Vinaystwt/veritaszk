@@ -143,3 +143,66 @@ export async function isProofExpired(
   if (!expiryBlock || !ts) return false
   return expiryBlock > 0 && ts > expiryBlock
 }
+
+// ─── Indexer-based helpers (v0.3.0) ──────────────────────────────────
+
+export interface ProofStatus {
+  commitment: string
+  isSolvent: boolean
+  proofStatus: number
+  timestamp: number
+  expiry: number
+  isExpired: boolean
+  verificationCount: number
+  tier: number
+}
+
+export async function batchVerifyFromIndexer(
+  commitments: string[],
+  indexerUrl: string
+): Promise<(ProofStatus | null)[]> {
+  const res = await fetch(`${indexerUrl}/api/proofs`)
+  if (!res.ok) throw new Error(`Indexer returned ${res.status}`)
+  const all: ProofStatus[] = await res.json()
+  return commitments.map(c => {
+    const found = all.find(p => p.commitment === c)
+    return found ?? null
+  })
+}
+
+export function watchProof(
+  commitment: string,
+  callback: (status: ProofStatus) => void,
+  indexerUrl: string,
+  intervalMs: number = 30000
+): () => void {
+  let prev: string | null = null
+  let stopped = false
+  const poll = async () => {
+    if (stopped) return
+    try {
+      const res = await fetch(`${indexerUrl}/api/proofs/${commitment}`)
+      if (!res.ok) return
+      const status: ProofStatus = await res.json()
+      const key = JSON.stringify(status)
+      if (prev !== null && key !== prev) callback(status)
+      prev = key
+    } catch {
+      // silently ignore network errors
+    }
+  }
+  // Do an immediate poll to seed prev, then start interval
+  poll()
+  const id = setInterval(poll, intervalMs)
+  return () => { stopped = true; clearInterval(id) }
+}
+
+export async function isProofExpiredFromIndexer(
+  commitment: string,
+  indexerUrl: string
+): Promise<boolean> {
+  const res = await fetch(`${indexerUrl}/api/proofs/${commitment}`)
+  if (!res.ok) return false
+  const status: ProofStatus = await res.json()
+  return status.isExpired || status.proofStatus === 2
+}
