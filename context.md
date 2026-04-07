@@ -974,3 +974,224 @@ around a confirmed-working threshold program.
 Secondary risk: Railway indexer sleeping. Use "Always on" setting
 or ping /api/health every 5 minutes. A sleeping indexer on
 submission day drops Tech from 9/10 to 7/10.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPETITOR INTELLIGENCE — April 7, 2026
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NULLPAY WEAKNESSES (exploit these):
+- Single monolithic Leo program (v24) — no CPI architecture
+- Merchant addresses are BHP256 HASHED, not truly private
+- Single project-controlled encryption key for all off-chain data
+- No true chain indexer — their backend is a record scanner proxy
+- No confirmed demo mode without wallet
+- Alex asked about single-key concern since Wave 1, never resolved
+
+NULLPAY WAVE 5 ADDITIONS (confirmed):
+- NullCards (virtual debit card profiles — CardProfileRecord)
+- Telegram bot (full payment interface via Telegram)
+- Dynamic fee estimation
+- AuditVerify page
+- Animated globe (cobe) on hero section
+
+VEILED MARKETS WAVE 5 ADDITIONS (confirmed):
+- Parlay betting system (26 transitions, cross-market bets)
+- SDK with tests
+- CryptoTickerStrip + live price charts
+- 5 deployed Leo programs total (most in buildathon history)
+- Their indexer is a STUB — market data is hardcoded
+
+ZKPERP: Repository not locatable. Not a top-3 threat.
+
+NEW ENTRANTS: None found in solvency/treasury proof vertical.
+VeritasZK remains the only project in this space across all 5 waves.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RANKED FEATURE ADDITIONS — April 7, 2026
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ranked by score impact per build hour.
+Phase A (threshold) and Phase B (indexer) are committed.
+Everything below is ADDITIONAL to those two.
+
+RANK 1 — Deploy Proof Monitor Bot to Railway
+  Impact: T+0.4, Pr+0.4 = ~0.8 pts | Hours: 0.5–1.0
+  Already built. Just needs Railway deploy.
+
+RANK 2 — Public Verifier: Zero Wallet Zero Setup
+  Impact: U+1.0, Pr+0.5 = ~1.5 pts | Hours: 2–3
+  /verifier page fully functional, reads indexer, no wallet needed.
+
+RANK 3 — Proof Expiry + Re-attestation Transitions (Leo)
+  Impact: T+0.5, Pr+0.5, P+0.2 = ~1.2 pts | Hours: 2–3
+  submit_proof_with_expiry + refresh_proof in veritaszk_core.aleo
+  New mapping: proof_expiry: field → u32
+
+RANK 4 — SDK: batchVerify + watchProof Hook
+  Impact: T+0.3, Pr+0.5 = ~0.8 pts | Hours: 1.5
+  Bump to veritaszk-sdk@0.3.0
+
+RANK 5 — README + Technical Architecture Doc
+  Impact: T+0.3, U+0.5 = ~0.8 pts | Hours: 2
+  CPI diagram, privacy model table, SDK quickstart,
+  Szabo + a16z citations, all 4 deploy addresses.
+
+RANK 6 — Audit Log Transition (Leo)
+  Impact: P+0.4, T+0.4 = ~0.8 pts | Hours: 2
+  log_verification in veritaszk_audit.aleo
+  New Record: AuditRecord (verifier identity private)
+  New mapping: verification_counts
+
+RANK 7 — Embeddable Verification Badge
+  Impact: Pr+0.6, U+0.2 = ~0.8 pts | Hours: 2
+  Script tag widget. Real-time tier + expiry display.
+  Organizations embed on their own sites.
+
+RANK 8 — "Why VeritasZK" Page (/why)
+  Impact: Pr+0.5, U+0.3 = ~0.8 pts | Hours: 2
+  FTX/Celsius/BlockFi collapse timeline with numbers.
+  Merkle PoR failure explanation.
+  Basel III / Solvency II tier mapping table.
+
+RANK 9 — Named Org Profiles in Registry (Leo + Frontend)
+  Impact: Pr+0.7, U+0.3 = ~1.0 pt | Hours: 3
+  register_org_name transition in registry.
+  Shows org names on verifier page instead of hex hashes.
+
+RANK 10 — Delegate Proof Authority (Leo)
+  Impact: P+0.3, T+0.3, Pr+0.2 = ~0.8 pts | Hours: 2
+  delegate_proof_authority in registry.
+  New Record: DelegateRecord (auditor submits on org's behalf)
+  VeritasZK's equivalent of NullPay's DPS.
+
+RANK 11 — Live Stats Counter on /public
+  Impact: U+0.7, Pr+0.4 = ~1.1 pts | Hours: 3
+  Total orgs attested, total verifications, tier distribution.
+  Reads from REST API indexer. Animates on load.
+
+RANK 12 — Downloadable Solvency Certificate
+  Impact: U+0.5, Pr+0.5 = ~1.0 pt | Hours: 3–4
+  PDF/canvas download after proof generation.
+  Styled like official financial document.
+
+RANK 13 — Proof Revocation Transition (Leo)
+  Impact: P+0.2, T+0.3 = ~0.5 pts | Hours: 1.5
+  revoke_proof in veritaszk_core.aleo
+  New Record: RevokeReceipt
+
+RANK 14 — MCP Server Update: Indexer-Backed Tools
+  Impact: T+0.2, Pr+0.3 = ~0.5 pts | Hours: 1.5
+  check_org_solvency + list_expiring_proofs tools
+  Bump to veritaszk-mcp@0.2.0
+
+RANK 15 — Compliance Positioning on /enterprise
+  Impact: Pr+0.4, N+0.2 = ~0.6 pts | Hours: 1.5
+  Basel III → Tier 4, Solvency II → Tier 3 mapping.
+  MiCA Article 76 reference.
+  Already live, just needs real content.
+
+RANK 16 — Vault Aesthetic Redesign (Frontend Rebuild)
+  Impact: U+1.5 pts | Hours: 6–8
+  Background: #050A0F (deep navy-black)
+  Accent: Electric teal #00D4AA (Aleo's brand color)
+  Hex grid background at 2% opacity (not grain)
+  IBM Plex Mono for data values, Inter for copy
+  This is Phase C — QWEN has full design autonomy here.
+
+RANK 17 — Multi-Asset Type Encoding in Threshold
+  Impact: P+0.3, N+0.3, Pr+0.2 = ~0.8 pts | Hours: 3
+  Extend threshold struct: native_credits, stablecoin_usd,
+  btc_equivalent, other_assets — all private.
+  Build as part of Phase A if possible.
+
+RANKS 18–20: Lower priority. Only if Ranks 1–15 are done.
+  18 — Sequential Proof Commitment History (Leo, 3h)
+  19 — zkTLS Financial Data Bridge (stretch, 8-12h)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADDITIONAL LEO TRANSITIONS TO ADD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NO 5th program. Add transitions to existing programs only.
+
+veritaszk_core.aleo — ADD:
+  submit_proof_with_expiry (Rank 3)
+  refresh_proof (Rank 3)
+  revoke_proof (Rank 13)
+
+veritaszk_audit.aleo — ADD:
+  log_verification + AuditRecord + verification_counts (Rank 6)
+
+veritaszk_registry.aleo — ADD:
+  delegate_proof_authority + DelegateRecord (Rank 10)
+  register_org_name + name_registry mapping (Rank 9)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NARRATIVE: NAMED MECHANISM SENTENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+USE THIS in README and submission (Version C — recommended):
+"A ZK-native implementation of Nick Szabo's 1993 confidential
+auditing protocol: organizations produce unforgeable,
+timestamp-anchored solvency attestations using range proofs
+over private financial data, revealing only a regulatory tier
+classification aligned with Basel III and Solvency II capital
+requirements."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FRONTEND DESIGN DIRECTION (Phase C)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+QWEN has full design autonomy in Phase C.
+These are directional inputs only — not constraints.
+
+Visual identity: "ZK Vault / Cold Institutional"
+Background: #050A0F | Accent: #00D4AA teal | Surface: #0B1421
+No grain texture — hex grid SVG at 2% opacity instead
+IBM Plex Mono for data, Inter for copy
+Framer Motion for animations
+
+Key animated elements to consider:
+1. Proof Seal Animation — concentric rings closing on hero load
+2. Live Proof Activity Feed — scrolling ticker from indexer data
+3. Tier Confidence Ring — SVG ring filling to tier level on result
+4. Animated Data Flow Diagram — on /why page, data blurs into circuit
+5. Comparison Table — VeritasZK vs Merkle PoR vs Traditional Audit
+6. Block Height Countdown — live expiry on verifier page
+7. Hex Grid Background — mousemove-responsive at 1.5% opacity
+8. "Proof It" Demo Button — inline demo, no wallet, 3-second simulation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROBABILITY MODEL (updated April 7)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Scenario A (Phase A + B only):
+  ~31 raw points | #1 probability: 35–42%
+
+Scenario B (Phase A + B + Ranks 1–8 + Shield Wallet):
+  ~34 raw points | #1 probability: 52–60%
+
+Scenario C (all 20 features shipped cleanly):
+  ~36–37 raw points | #1 probability: 68–75%
+
+BIGGEST EXECUTION RISK:
+  Leo syntax in veritaszk_threshold.aleo.
+  Validate leo build --network testnet FIRST before anything else.
+  Deploy threshold to testnet BEFORE writing any other new code.
+  A broken threshold program = -5 raw points = third place floor.
+
+Secondary risk: Railway indexer sleeping on submission day.
+  Use Railway "Always on" or ping /api/health every 5 minutes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPEN QUESTIONS (answer before Phase C)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Exact current transition names in all 3 deployed programs?
+2. Do current programs have any private Records?
+3. Does current /organization flow call any real Leo transition?
+4. Is Shield Wallet currently integrated?
+5. Does demo mode exist in any working form?
+6. What does the proof monitor bot watch for exactly?
+7. Does veritaszk-mcp currently query testnet or mock data?
+8. Is there any Supabase or database currently in use?
