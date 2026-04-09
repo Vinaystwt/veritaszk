@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-base: #08080d;
+  --color-bg-surface: #0f0f18;
+  --color-bg-elevated: #161623;
+  --color-accent: #4fffb0;
+  --color-accent-dim: rgba(79, 255, 176, 0.10);
+  --color-status-active: #4fffb0;
+  --color-status-expiring: #e5ff4f;
+  --color-status-expired: #ff4455;
+  --color-status-revoked: #666674;
+  --color-tier-1: #8888a0;
+  --color-tier-2: #4fffb0;
+  --color-tier-3: #e5ff4f;
+  --color-tier-4: #ffffff;
+  --color-text-primary: #f4f4f0;
+  --color-text-secondary: #888896;
+  --color-text-dim: #44444f;
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-default: rgba(255, 255, 255, 0.10);
+
+  --font-family-display: "Instrument Serif", Georgia, serif;
+  --font-family-body: "Figtree", system-ui, sans-serif;
+  --font-family-mono: "JetBrains Mono", "Courier New", monospace;
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background-color: #08080d;
+    color: #f4f4f0;
+    font-family: "Figtree", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: rgba(79, 255, 176, 0.15);
+    color: #4fffb0;
+  }
+
+  ::-webkit-scrollbar { width: 3px; height: 3px; }
+  ::-webkit-scrollbar-track { background: #08080d; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+  h1, h2, h3, h4, h5, h6 { font-family: "Instrument Serif", Georgia, serif; }
+  code, pre, kbd { font-family: "JetBrains Mono", monospace; }
+}
+
+@layer utilities {
+  .font-display { font-family: "Instrument Serif", Georgia, serif; }
+  .font-body { font-family: "Figtree", system-ui, sans-serif; }
+  .font-mono { font-family: "JetBrains Mono", monospace; }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 24px rgba(79,255,176,0.15), 0 0 48px rgba(79,255,176,0.06);
+  }
+
+  .glass {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+  }
+
+  .glass-accent {
+    background: rgba(79,255,176,0.04);
+    border: 1px solid rgba(79,255,176,0.18);
+  }
+}
+
+/* Ticker scroll */
+@keyframes ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-track {
+  animation: ticker-scroll 28s linear infinite;
+  will-change: transform;
+}
+.ticker-track:hover { animation-play-state: paused; }
+
+/* Status pulse */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* Critical expiry */
+@keyframes critical-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,68,85,0.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(255,68,85,0); }
+}
+.critical-pulse { animation: critical-pulse 1.5s ease-in-out infinite; }
+
+/* Shimmer skeleton */
+@keyframes shimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.07) 40px, rgba(255,255,255,0.03) 80px);
+  background-size: 800px 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
+/* Scan line accent */
+@keyframes scan-line {
+  0%   { top: -2px; opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { top: 100%; opacity: 0; }
+}
+.scan-line {
+  position: absolute;
+  left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, #4fffb0, transparent);
+  animation: scan-line 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Flow animation for ZK diagram */
+@keyframes flow-right {
+  0%   { stroke-dashoffset: 100; opacity: 0.3; }
+  50%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.3; }
+}
+.flow-line {
+  stroke-dasharray: 8 4;
+  animation: flow-right 2s linear infinite;
+}
+
+/* Floating */
+@keyframes float-up {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+.float { animation: float-up 6s ease-in-out infinite; }

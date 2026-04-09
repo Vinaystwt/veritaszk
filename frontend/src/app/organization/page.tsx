@@ -1,0 +1,714 @@
+'use client'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useShieldWallet } from '@/hooks/useShieldWallet'
+import { registerProof } from '@/lib/api'
+import { TIERS, PROGRAMS } from '@/lib/constants'
+import { TierBadge } from '@/components/ui/TierBadge'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { CommitmentDisplay } from '@/components/ui/CommitmentDisplay'
+import html2canvas from 'html2canvas'
+
+// ─── Tier calculator ────────────────────────────────────────────────────────
+function computeTier(assets: number, liabilities: number): { tier: 1|2|3|4; ratio: number } | null {
+  if (!assets || !liabilities || liabilities <= 0) return null
+  const ratio = assets / liabilities
+  if (ratio >= 3.0) return { tier: 4, ratio }
+  if (ratio >= 2.0) return { tier: 3, ratio }
+  if (ratio >= 1.5) return { tier: 2, ratio }
+  if (ratio >= 1.0) return { tier: 1, ratio }
+  return null
+}
+
+// ─── Step 1: Org Identity ───────────────────────────────────────────────────
+function Step1({ wallet, isDemo, onComplete }: {
+  wallet: ReturnType<typeof useShieldWallet>
+  isDemo: boolean
+  onComplete: (data: { orgName: string; commitment: string; txHash: string }) => void
+}) {
+  const [orgName, setOrgName] = useState(isDemo ? 'DemoExchange' : '')
+  const [delegate, setDelegate] = useState('')
+  const [salt] = useState(() => Math.random().toString(36).slice(2, 18).toUpperCase())
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [saltCopied, setSaltCopied] = useState(false)
+
+  const copySalt = async () => {
+    await navigator.clipboard.writeText(salt)
+    setSaltCopied(true)
+    setTimeout(() => setSaltCopied(false), 2000)
+  }
+
+  const submit = async () => {
+    if (!orgName.trim()) { setError('Organization name is required'); return }
+    setError('')
+    setSubmitting(true)
+
+    try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 1400))
+        const demoCommitment = `a1b2${Math.random().toString(16).slice(2, 18)}demo`
+        const demoTx = `at1demo${Math.random().toString(36).slice(2, 16)}`
+        onComplete({ orgName: orgName.trim(), commitment: demoCommitment, txHash: demoTx })
+      } else {
+        // Real: call register_org via Shield Wallet
+        const tx = await window.shield?.requestTransaction?.({
+          programId: 'veritaszk_registry.aleo',
+          functionName: 'register_org',
+          inputs: [orgName.trim(), delegate || wallet.publicKey, salt],
+          fee: 100000,
+        })
+        const commitment = `org_${btoa(orgName).slice(0, 12)}_${salt.slice(0, 8)}`
+        const txHash = tx?.transactionId ?? ''
+        await registerProof({ commitment, orgName: orgName.trim(), tier: 1, coverageRatio: 1.0 })
+        onComplete({ orgName: orgName.trim(), commitment, txHash })
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Transaction failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <label className="block font-mono text-xs mb-2" style={{ color: '#888896' }}>ORGANIZATION NAME</label>
+        <input
+          type="text"
+          value={orgName}
+          onChange={e => setOrgName(e.target.value)}
+          placeholder="e.g. Acme Exchange"
+          className="w-full px-4 py-3 rounded-lg font-body text-sm outline-none transition-all"
+          style={{
+            background: '#0f0f18',
+            border: '1px solid rgba(255,255,255,0.10)',
+            color: '#f4f4f0',
+          }}
+        />
+      </div>
+
+      <div>
+        <label className="block font-mono text-xs mb-2" style={{ color: '#888896' }}>DELEGATE ADDRESS <span style={{ color: '#44444f' }}>(optional)</span></label>
+        <input
+          type="text"
+          value={delegate}
+          onChange={e => setDelegate(e.target.value)}
+          placeholder="aleo1..."
+          className="w-full px-4 py-3 rounded-lg font-mono text-sm outline-none transition-all"
+          style={{
+            background: '#0f0f18',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#f4f4f0',
+          }}
+        />
+        <p className="font-mono text-xs mt-1.5" style={{ color: '#44444f' }}>Defaults to your connected wallet</p>
+      </div>
+
+      <div>
+        <label className="block font-mono text-xs mb-2" style={{ color: '#888896' }}>SALT — SAVE THIS</label>
+        <div
+          className="flex items-center justify-between px-4 py-3 rounded-lg"
+          style={{ background: '#0f0f18', border: '1px solid rgba(229,255,79,0.15)' }}
+        >
+          <span className="font-mono text-sm" style={{ color: '#e5ff4f' }}>{salt}</span>
+          <button onClick={copySalt} className="font-mono text-xs px-2 py-1 rounded cursor-pointer" style={{ color: saltCopied ? '#4fffb0' : '#888896', background: 'rgba(255,255,255,0.04)' }}>
+            {saltCopied ? '✓ copied' : 'copy'}
+          </button>
+        </div>
+        <p className="font-mono text-xs mt-1.5" style={{ color: '#44444f' }}>Auto-generated. Store securely — you will need it to refresh proofs.</p>
+      </div>
+
+      {error && (
+        <p className="font-mono text-xs px-3 py-2 rounded" style={{ background: 'rgba(255,68,85,0.08)', color: '#ff4455', border: '1px solid rgba(255,68,85,0.15)' }}>
+          {error}
+        </p>
+      )}
+
+      <button
+        onClick={submit}
+        disabled={submitting}
+        className="w-full py-3.5 rounded-lg font-body font-semibold transition-all flex items-center justify-center gap-2"
+        style={{
+          background: submitting ? 'rgba(79,255,176,0.5)' : '#4fffb0',
+          color: '#08080d',
+          cursor: submitting ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {submitting ? (
+          <><LoadingSpinner size="sm" color="#08080d" /> {isDemo ? 'Simulating...' : 'Signing Transaction...'}</>
+        ) : (
+          `${isDemo ? 'Simulate' : 'Register'} Organization →`
+        )}
+      </button>
+
+      <p className="font-mono text-xs text-center" style={{ color: '#44444f' }}>
+        Calls veritaszk_registry.aleo → register_org
+      </p>
+    </div>
+  )
+}
+
+// ─── Step 2: Proof Submission ────────────────────────────────────────────────
+function Step2({ orgName, isDemo, onComplete }: {
+  orgName: string
+  isDemo: boolean
+  onComplete: (data: { tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number }) => void
+}) {
+  const [assets, setAssets] = useState({ native: isDemo ? '3200000' : '', stablecoin: isDemo ? '800000' : '', btc: isDemo ? '200000' : '', other: isDemo ? '300000' : '' })
+  const [liabilities, setLiabilities] = useState(isDemo ? '1500000' : '')
+  const [validity, setValidity] = useState(30)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const totalAssets = Object.values(assets).reduce((s, v) => s + (parseFloat(v) || 0), 0)
+  const totalLiab = parseFloat(liabilities) || 0
+  const tierResult = computeTier(totalAssets, totalLiab)
+
+  const validityToBlocks: Record<number, number> = { 7: 120960, 30: 518400, 90: 1555200 }
+
+  const submit = async () => {
+    if (!tierResult) { setError('Assets must exceed liabilities to qualify for a tier'); return }
+    setError('')
+    setSubmitting(true)
+
+    try {
+      const blocks = validityToBlocks[validity]
+      const baseBlock = 15613711
+
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 1800))
+        const commitment = `b2c3${Math.random().toString(16).slice(2, 20)}tier${tierResult.tier}`
+        const txHash = `at1demo${Math.random().toString(36).slice(2, 16)}`
+        await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
+        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks })
+      } else {
+        const assetBundle = { native_credits: Math.floor(parseFloat(assets.native) || 0), stablecoin_usd: Math.floor(parseFloat(assets.stablecoin) || 0), btc_equivalent: Math.floor(parseFloat(assets.btc) || 0), other_assets: Math.floor(parseFloat(assets.other) || 0) }
+        const tx = await window.shield?.requestTransaction?.({
+          programId: 'veritaszk_threshold.aleo',
+          functionName: 'prove_threshold',
+          inputs: [JSON.stringify(assetBundle), Math.floor(totalLiab).toString(), blocks.toString()],
+          fee: 250000,
+        })
+        const commitment = `thr_${Math.random().toString(16).slice(2, 18)}`
+        await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
+        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash: tx?.transactionId ?? '', expiryBlock: baseBlock + blocks })
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Transaction failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Asset bundle */}
+      <div>
+        <label className="block font-mono text-xs mb-3" style={{ color: '#888896' }}>ASSET BUNDLE (AssetBundle struct)</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            { key: 'native', label: 'Native Credits (ALEO)' },
+            { key: 'stablecoin', label: 'Stablecoin USD (USDCx/USAD)' },
+            { key: 'btc', label: 'BTC Equivalent' },
+            { key: 'other', label: 'Other Assets' },
+          ].map(field => (
+            <div key={field.key}>
+              <label className="block font-mono text-xs mb-1.5" style={{ color: '#44444f' }}>{field.label}</label>
+              <input
+                type="number"
+                value={assets[field.key as keyof typeof assets]}
+                onChange={e => setAssets(prev => ({ ...prev, [field.key]: e.target.value }))}
+                placeholder="0"
+                className="w-full px-3 py-2.5 rounded font-mono text-sm outline-none"
+                style={{ background: '#0f0f18', border: '1px solid rgba(255,255,255,0.08)', color: '#f4f4f0' }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="block font-mono text-xs mb-2" style={{ color: '#888896' }}>TOTAL LIABILITIES</label>
+        <input
+          type="number"
+          value={liabilities}
+          onChange={e => setLiabilities(e.target.value)}
+          placeholder="0"
+          className="w-full px-4 py-3 rounded-lg font-mono text-sm outline-none"
+          style={{ background: '#0f0f18', border: '1px solid rgba(255,255,255,0.10)', color: '#f4f4f0' }}
+        />
+      </div>
+
+      {/* Live tier preview */}
+      <AnimatePresence>
+        {tierResult && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="rounded-xl p-5"
+            style={{ background: 'rgba(79,255,176,0.04)', border: '1px solid rgba(79,255,176,0.15)' }}
+          >
+            <p className="font-mono text-xs mb-3" style={{ color: '#4fffb0' }}>LIVE TIER EVALUATION</p>
+            <div className="flex items-center gap-4 flex-wrap">
+              <TierBadge tier={tierResult.tier} size="lg" showName showRatio />
+              <div>
+                <p className="font-mono text-2xl font-bold" style={{ color: TIERS.find(t => t.tier === tierResult.tier)?.color }}>
+                  {tierResult.ratio.toFixed(2)}×
+                </p>
+                <p className="font-mono text-xs" style={{ color: '#888896' }}>coverage ratio</p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((tierResult.ratio / 3) * 100, 100)}%`, background: TIERS.find(t => t.tier === tierResult.tier)?.color }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Validity period */}
+      <div>
+        <label className="block font-mono text-xs mb-3" style={{ color: '#888896' }}>VALIDITY PERIOD</label>
+        <div className="flex gap-3">
+          {[7, 30, 90].map(d => (
+            <button
+              key={d}
+              onClick={() => setValidity(d)}
+              className="flex-1 py-2.5 rounded font-mono text-xs font-medium transition-all"
+              style={{
+                background: validity === d ? 'rgba(79,255,176,0.10)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${validity === d ? 'rgba(79,255,176,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                color: validity === d ? '#4fffb0' : '#888896',
+                cursor: 'pointer',
+              }}
+            >
+              {d} days<br />
+              <span style={{ color: '#44444f', fontSize: '10px' }}>{validityToBlocks[d].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} blocks</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && (
+        <p className="font-mono text-xs px-3 py-2 rounded" style={{ background: 'rgba(255,68,85,0.08)', color: '#ff4455', border: '1px solid rgba(255,68,85,0.15)' }}>
+          {error}
+        </p>
+      )}
+
+      <button
+        onClick={submit}
+        disabled={submitting || !tierResult}
+        className="w-full py-3.5 rounded-lg font-body font-semibold transition-all flex items-center justify-center gap-2"
+        style={{
+          background: submitting || !tierResult ? 'rgba(79,255,176,0.3)' : '#4fffb0',
+          color: '#08080d',
+          cursor: submitting || !tierResult ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {submitting ? (
+          <><LoadingSpinner size="sm" color="#08080d" /> {isDemo ? 'Generating ZK Proof...' : 'Proving Threshold...'}</>
+        ) : (
+          `${isDemo ? 'Simulate' : 'Submit'} Solvency Proof →`
+        )}
+      </button>
+
+      <p className="font-mono text-xs text-center" style={{ color: '#44444f' }}>
+        Calls veritaszk_threshold.aleo → prove_threshold
+      </p>
+    </div>
+  )
+}
+
+// ─── Certificate component (hidden, rendered for download) ──────────────────
+function CertificateTemplate({ orgName, tier, tierName, ratio, block, commitment }: {
+  orgName: string; tier: number; tierName: string; ratio: number; block: number; commitment: string
+}) {
+  const tierInfo = TIERS.find(t => t.tier === tier)!
+  return (
+    <div
+      id="certificate-template"
+      style={{
+        width: 800, height: 520,
+        background: '#08080d',
+        fontFamily: '"JetBrains Mono", monospace',
+        padding: 48,
+        border: `2px solid ${tierInfo.color}`,
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Corner marks */}
+      {[[0,0],[800-16,0],[0,520-16],[800-16,520-16]].map(([x,y], i) => (
+        <div key={i} style={{ position: 'absolute', left: x, top: y, width: 16, height: 16, borderTop: `2px solid ${tierInfo.color}`, borderLeft: `2px solid ${tierInfo.color}`, transform: i === 1 ? 'scaleX(-1)' : i === 2 ? 'scaleY(-1)' : i === 3 ? 'scale(-1)' : '' }} />
+      ))}
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40 }}>
+        <div>
+          <div style={{ fontSize: 11, color: '#44444f', letterSpacing: 4, marginBottom: 6 }}>SOLVENCY ATTESTATION CERTIFICATE</div>
+          <div style={{ fontSize: 28, color: '#f4f4f0', fontFamily: '"Instrument Serif", Georgia, serif', fontStyle: 'italic' }}>
+            VeritasZK
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 11, color: '#44444f', letterSpacing: 2, marginBottom: 4 }}>TIER CLASSIFICATION</div>
+          <div style={{ fontSize: 48, fontWeight: 'bold', color: tierInfo.color, lineHeight: 1 }}>T{tier}</div>
+          <div style={{ fontSize: 14, color: tierInfo.color, marginTop: 2 }}>{tierName}</div>
+        </div>
+      </div>
+      {/* Org name */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 10, color: '#44444f', letterSpacing: 3, marginBottom: 6 }}>ORGANIZATION</div>
+        <div style={{ fontSize: 22, color: '#f4f4f0', fontFamily: '"Instrument Serif", Georgia, serif' }}>{orgName}</div>
+      </div>
+      {/* Details row */}
+      <div style={{ display: 'flex', gap: 48, marginBottom: 32 }}>
+        {[
+          { label: 'COVERAGE RATIO', value: `≥ ${tierInfo.label}` },
+          { label: 'STANDARD', value: tierInfo.regulatory.split('/')[0].trim() },
+          { label: 'LAST ATTESTED BLOCK', value: `#${block.toLocaleString()}` },
+          { label: 'DATE', value: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) },
+        ].map(item => (
+          <div key={item.label}>
+            <div style={{ fontSize: 9, color: '#44444f', letterSpacing: 3, marginBottom: 4 }}>{item.label}</div>
+            <div style={{ fontSize: 13, color: '#f4f4f0' }}>{item.value}</div>
+          </div>
+        ))}
+      </div>
+      {/* Commitment */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 9, color: '#44444f', letterSpacing: 3, marginBottom: 4 }}>PROOF COMMITMENT</div>
+        <div style={{ fontSize: 11, color: '#888896', wordBreak: 'break-all' }}>{commitment}</div>
+      </div>
+      {/* Footer */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <div style={{ fontSize: 10, color: '#44444f' }}>veritaszk_threshold.aleo · Aleo Testnet · 2026</div>
+        <div style={{ fontSize: 12, color: tierInfo.color, letterSpacing: 1 }}>Prove Solvency. Reveal Nothing.</div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Step 3: Confirmation ────────────────────────────────────────────────────
+function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }: {
+  orgName: string; tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number; isDemo: boolean
+}) {
+  const [downloading, setDownloading] = useState(false)
+  const tierInfo = TIERS.find(t => t.tier === tier)!
+  const explorer = PROGRAMS.find(p => p.id === 'veritaszk_threshold.aleo')?.explorerUrl ?? ''
+
+  const downloadCert = async () => {
+    setDownloading(true)
+    try {
+      const el = document.getElementById('certificate-template')
+      if (!el) return
+      const canvas = await html2canvas(el, { backgroundColor: '#08080d', scale: 2, useCORS: true })
+      const link = document.createElement('a')
+      link.download = `${orgName.replace(/\s+/g, '_')}_solvency_cert.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Main tier result */}
+      <div className="rounded-xl p-8 text-center" style={{ background: `${tierInfo.color}08`, border: `2px solid ${tierInfo.color}30` }}>
+        <TierBadge tier={tier} size="xl" showName showRatio />
+        <p className="font-mono text-4xl font-bold mt-4" style={{ color: tierInfo.color }}>{ratio.toFixed(2)}× coverage</p>
+        <p className="font-mono text-sm mt-2" style={{ color: '#888896' }}>{tierInfo.regulatory}</p>
+      </div>
+
+      {/* Details */}
+      <div className="rounded-xl p-5 space-y-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex justify-between items-center">
+          <span className="font-mono text-xs" style={{ color: '#888896' }}>Commitment</span>
+          <CommitmentDisplay hash={commitment} chars={10} />
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="font-mono text-xs" style={{ color: '#888896' }}>Expiry Block</span>
+          <span className="font-mono text-xs" style={{ color: '#f4f4f0' }}>#{expiryBlock.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+        </div>
+        {txHash && (
+          <div className="flex justify-between items-center">
+            <span className="font-mono text-xs" style={{ color: '#888896' }}>TX Hash</span>
+            <span className="font-mono text-xs" style={{ color: isDemo ? '#e5ff4f' : '#f4f4f0' }}>
+              {txHash.slice(0, 14)}... {isDemo && <span style={{ color: '#e5ff4f' }}>[DEMO]</span>}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-3">
+        <a
+          href={`${explorer}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full py-3 rounded-lg font-body text-sm font-medium text-center transition-all"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', color: '#f4f4f0' }}
+        >
+          View on Explorer ↗
+        </a>
+        <a
+          href={`/verifier?commitment=${commitment}`}
+          className="w-full py-3 rounded-lg font-body text-sm font-medium text-center transition-all"
+          style={{ background: 'rgba(79,255,176,0.06)', border: '1px solid rgba(79,255,176,0.15)', color: '#4fffb0' }}
+        >
+          Verify Proof →
+        </a>
+        <button
+          onClick={downloadCert}
+          disabled={downloading}
+          className="w-full py-3 rounded-lg font-body text-sm font-medium transition-all flex items-center justify-center gap-2"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#888896', cursor: 'pointer' }}
+        >
+          {downloading ? <><LoadingSpinner size="sm" color="#888896" /> Generating...</> : '⬇ Download Certificate (PNG)'}
+        </button>
+      </div>
+
+      {/* Hidden certificate for download */}
+      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+        <CertificateTemplate
+          orgName={orgName}
+          tier={tier}
+          tierName={tierInfo.name}
+          ratio={ratio}
+          block={15613711}
+          commitment={commitment}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─── Wallet gate ─────────────────────────────────────────────────────────────
+function WalletGate({ wallet }: { wallet: ReturnType<typeof useShieldWallet> }) {
+  const { state, connect, enterDemoMode, errorMessage } = wallet
+
+  const stateConfig = {
+    IDLE:          { msg: '', sub: '' },
+    CONNECTING:    { msg: 'Opening Shield Wallet...', sub: 'Please approve the connection in your extension.' },
+    POLLING:       { msg: 'Waiting for wallet...', sub: 'Establishing secure connection with exponential backoff.' },
+    ERROR:         { msg: 'Connection failed', sub: errorMessage ?? 'Please try again.' },
+    NOT_INSTALLED: { msg: 'Shield Wallet not detected', sub: 'Install the Shield Wallet extension to connect.' },
+    CONNECTED:     { msg: '', sub: '' },
+    DEMO_MODE:     { msg: '', sub: '' },
+  }
+
+  const cfg = stateConfig[state]
+  const isLoading = state === 'CONNECTING' || state === 'POLLING'
+  const showRetry = state === 'ERROR' || state === 'NOT_INSTALLED'
+
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="max-w-md w-full text-center px-6">
+        {/* Shield icon */}
+        <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-8" style={{ background: 'rgba(79,255,176,0.06)', border: '1px solid rgba(79,255,176,0.15)' }}>
+          {isLoading ? (
+            <LoadingSpinner size="lg" />
+          ) : (
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L3 6v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V6l-9-4z" stroke={state === 'ERROR' || state === 'NOT_INSTALLED' ? '#ff4455' : '#4fffb0'} strokeWidth="1.5" strokeLinejoin="round" />
+              {(state === 'IDLE' || state === 'CONNECTED') && <path d="M9 12l2 2 4-4" stroke="#4fffb0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
+            </svg>
+          )}
+        </div>
+
+        {state === 'IDLE' && (
+          <>
+            <h2 className="font-display text-2xl mb-3" style={{ color: '#f4f4f0' }}>Connect to Continue</h2>
+            <p className="text-sm mb-8 font-body" style={{ color: '#888896' }}>
+              The Organization Portal requires a Shield Wallet connection to sign transactions on Aleo.
+            </p>
+          </>
+        )}
+
+        {isLoading && (
+          <>
+            <h2 className="font-display text-2xl mb-3" style={{ color: '#f4f4f0' }}>{cfg.msg}</h2>
+            <p className="text-sm mb-8 font-body" style={{ color: '#888896' }}>{cfg.sub}</p>
+          </>
+        )}
+
+        {(state === 'ERROR' || state === 'NOT_INSTALLED') && (
+          <>
+            <h2 className="font-display text-xl mb-3" style={{ color: '#ff4455' }}>{cfg.msg}</h2>
+            <p className="text-sm mb-8 font-body" style={{ color: '#888896' }}>{cfg.sub}</p>
+          </>
+        )}
+
+        <div className="flex flex-col gap-3">
+          {state === 'IDLE' && (
+            <button onClick={connect} className="w-full py-3.5 rounded-lg font-body font-semibold" style={{ background: '#4fffb0', color: '#08080d', cursor: 'pointer' }}>
+              Connect Shield Wallet
+            </button>
+          )}
+          {state === 'NOT_INSTALLED' && (
+            <a href="https://shield.provable.com" target="_blank" rel="noopener noreferrer" className="w-full py-3.5 rounded-lg font-body font-semibold text-center block" style={{ background: '#4fffb0', color: '#08080d' }}>
+              Install Shield Wallet
+            </a>
+          )}
+          {state === 'ERROR' && (
+            <button onClick={connect} className="w-full py-3.5 rounded-lg font-body font-semibold" style={{ background: 'rgba(255,68,85,0.10)', color: '#ff4455', border: '1px solid rgba(255,68,85,0.20)', cursor: 'pointer' }}>
+              Retry Connection
+            </button>
+          )}
+
+          {(state === 'IDLE' || state === 'ERROR' || state === 'NOT_INSTALLED') && (
+            <button onClick={enterDemoMode} className="w-full py-3 rounded-lg font-body text-sm" style={{ background: 'rgba(229,255,79,0.06)', color: '#e5ff4f', border: '1px solid rgba(229,255,79,0.15)', cursor: 'pointer' }}>
+              No wallet? Try Demo Mode →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main page ───────────────────────────────────────────────────────────────
+function OrganizationContent() {
+  const searchParams = useSearchParams()
+  const isAutoDemo = searchParams.get('demo') === 'true'
+  const wallet = useShieldWallet()
+  const [currentStep, setCurrentStep] = useState(1)
+  const [orgData, setOrgData] = useState<{ orgName: string; commitment: string; txHash: string } | null>(null)
+  const [proofData, setProofData] = useState<{ tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number } | null>(null)
+
+  // Auto-enter demo mode if ?demo=true
+  useEffect(() => {
+    if (isAutoDemo && wallet.state === 'IDLE') {
+      wallet.enterDemoMode()
+    }
+  }, [isAutoDemo, wallet.state])
+
+  const isDemo = wallet.isDemo
+  const isAuthenticated = wallet.state === 'CONNECTED' || isDemo
+
+  const steps = [
+    { n: 1, label: 'Register Org' },
+    { n: 2, label: 'Submit Proof' },
+    { n: 3, label: 'Confirmation' },
+  ]
+
+  return (
+    <div className="min-h-screen" style={{ background: '#08080d' }}>
+      {/* Demo banner */}
+      <AnimatePresence>
+        {isDemo && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="w-full flex items-center justify-between px-6 py-2.5 font-mono text-xs"
+            style={{ background: 'rgba(229,255,79,0.06)', borderBottom: '1px solid rgba(229,255,79,0.15)', color: '#e5ff4f' }}
+          >
+            <span>⚡ Demo Mode — transactions are simulated, no real Aleo credits spent</span>
+            <button onClick={wallet.exitDemoMode} className="underline" style={{ color: '#e5ff4f', cursor: 'pointer' }}>Exit Demo</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="max-w-3xl mx-auto px-6 py-16">
+        <div className="mb-12">
+          <p className="font-mono text-xs tracking-widest mb-3" style={{ color: '#44444f' }}>ORGANIZATION PORTAL</p>
+          <h1 className="font-display text-4xl mb-3" style={{ color: '#f4f4f0' }}>
+            Prove Solvency.<br /><span className="italic" style={{ color: '#4fffb0' }}>Reveal Nothing.</span>
+          </h1>
+          <p className="text-base font-body" style={{ color: '#888896' }}>
+            Register your organization and submit a zero-knowledge range proof of solvency on Aleo.
+          </p>
+        </div>
+
+        {!isAuthenticated ? (
+          <WalletGate wallet={wallet} />
+        ) : (
+          <>
+            {/* Stepper */}
+            <div className="flex items-center gap-0 mb-12">
+              {steps.map((step, i) => (
+                <div key={step.n} className="flex items-center flex-1">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold transition-all"
+                      style={{
+                        background: currentStep > step.n ? '#4fffb0' : currentStep === step.n ? 'rgba(79,255,176,0.12)' : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${currentStep >= step.n ? '#4fffb0' : 'rgba(255,255,255,0.08)'}`,
+                        color: currentStep > step.n ? '#08080d' : currentStep === step.n ? '#4fffb0' : '#44444f',
+                      }}
+                    >
+                      {currentStep > step.n ? '✓' : step.n}
+                    </div>
+                    <span className="font-mono text-xs hidden sm:block" style={{ color: currentStep === step.n ? '#f4f4f0' : '#44444f' }}>
+                      {step.label}
+                    </span>
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className="flex-1 h-px mx-3" style={{ background: currentStep > step.n ? 'rgba(79,255,176,0.3)' : 'rgba(255,255,255,0.06)' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Step content */}
+            <div className="rounded-2xl p-8" style={{ background: '#0f0f18', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <AnimatePresence mode="wait">
+                {currentStep === 1 && (
+                  <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+                    <h2 className="font-display text-xl mb-6" style={{ color: '#f4f4f0' }}>Step 1 — Organization Identity</h2>
+                    <Step1
+                      wallet={wallet}
+                      isDemo={isDemo}
+                      onComplete={data => { setOrgData(data); setCurrentStep(2) }}
+                    />
+                  </motion.div>
+                )}
+                {currentStep === 2 && orgData && (
+                  <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+                    <h2 className="font-display text-xl mb-2" style={{ color: '#f4f4f0' }}>Step 2 — Solvency Proof</h2>
+                    <p className="font-mono text-xs mb-6" style={{ color: '#44444f' }}>Org: {orgData.orgName}</p>
+                    <Step2
+                      orgName={orgData.orgName}
+                      isDemo={isDemo}
+                      onComplete={data => { setProofData(data); setCurrentStep(3) }}
+                    />
+                  </motion.div>
+                )}
+                {currentStep === 3 && orgData && proofData && (
+                  <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+                    <h2 className="font-display text-xl mb-6" style={{ color: '#f4f4f0' }}>Step 3 — Attestation Confirmed</h2>
+                    <Step3
+                      orgName={orgData.orgName}
+                      tier={proofData.tier}
+                      ratio={proofData.ratio}
+                      commitment={proofData.commitment}
+                      txHash={proofData.txHash}
+                      expiryBlock={proofData.expiryBlock}
+                      isDemo={isDemo}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function OrganizationPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#08080d' }} />}>
+      <OrganizationContent />
+    </Suspense>
+  )
+}
