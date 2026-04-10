@@ -27,7 +27,7 @@
 
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; overflow-x: hidden; }
 
   body {
     background-color: #08080d;
@@ -36,6 +36,16 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Code blocks: always scroll horizontally rather than overflow viewport */
+  pre, code { max-width: 100%; }
+  pre { overflow-x: auto; }
+
+  /* Mono spans inside cards — allow wrapping on mobile */
+  @media (max-width: 640px) {
+    .font-mono { word-break: break-all; }
   }
 
   ::selection {

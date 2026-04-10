@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   description:
     'ZK proof-of-solvency on Aleo. Organizations prove financial health to regulators and counterparties using zero-knowledge range proofs — without revealing a single number. Aligned with Basel III, Solvency II, and MiCA Article 76.',
   keywords: ['zero knowledge', 'proof of solvency', 'Aleo', 'ZK', 'Basel III', 'Solvency II', 'MiCA', 'DeFi compliance'],
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
   openGraph: {
     title: 'VeritasZK — Prove Solvency. Reveal Nothing.',
     description: 'Zero-knowledge proof of solvency on Aleo. Built natively. Aligned with Basel III, Solvency II, and MiCA Article 76.',

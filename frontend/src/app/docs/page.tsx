@@ -1,10 +1,258 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useInView } from 'framer-motion'
 import { getHealth } from '@/lib/api'
 import { PROGRAMS, RAILWAY_BASE } from '@/lib/constants'
 import { CodeBlock } from '@/components/ui/CodeBlock'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+
+// ─── Animated CPI Architecture Diagram ──────────────────────────────────────
+function AnimatedCPIDiagram() {
+  const ref = useRef<SVGSVGElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-80px' })
+
+  // Node definitions
+  const REGISTRY   = { cx: 350, cy: 58,  w: 210, h: 60, label: 'veritaszk_registry.aleo',   sub: 'identity & credentials',           count: 6, accent: true }
+  const CORE       = { cx: 350, cy: 215, w: 230, h: 64, label: 'veritaszk_core.aleo',        sub: 'proof engine · central hub',       count: 10, hub: true }
+  const AUDIT      = { cx: 128, cy: 375, w: 195, h: 58, label: 'veritaszk_audit.aleo',       sub: 'compliance trail',                 count: 5, accent: false }
+  const THRESHOLD  = { cx: 572, cy: 375, w: 195, h: 58, label: 'veritaszk_threshold.aleo',  sub: 'asset bundles · tier proofs',      count: 3, accent: false }
+
+  // Connection paths
+  const paths = [
+    {
+      id: 'reg-core',
+      d: `M350,${REGISTRY.cy + REGISTRY.h/2} L350,${CORE.cy - CORE.h/2}`,
+      label: 'validates →',
+      lx: 360, ly: (REGISTRY.cy + CORE.cy) / 2,
+      dur: '1.6s', begin: '0s',
+    },
+    {
+      id: 'core-audit',
+      d: `M${CORE.cx - CORE.w/2 + 30},${CORE.cy + CORE.h/2} L${AUDIT.cx + 25},${AUDIT.cy - AUDIT.h/2}`,
+      label: 'audit events →',
+      lx: 195, ly: (CORE.cy + AUDIT.cy) / 2 - 6,
+      dur: '2.0s', begin: '0.5s',
+    },
+    {
+      id: 'core-threshold',
+      d: `M${CORE.cx + CORE.w/2 - 30},${CORE.cy + CORE.h/2} L${THRESHOLD.cx - 25},${THRESHOLD.cy - THRESHOLD.h/2}`,
+      label: 'tier proofs →',
+      lx: 476, ly: (CORE.cy + THRESHOLD.cy) / 2 - 6,
+      dur: '2.0s', begin: '1.0s',
+    },
+  ]
+
+  const nodes = [
+    { ...REGISTRY, delay: 0 },
+    { ...CORE, delay: 0.25 },
+    { ...AUDIT, delay: 0.5 },
+    { ...THRESHOLD, delay: 0.5 },
+  ]
+
+  return (
+    <svg
+      ref={ref}
+      viewBox="0 0 700 445"
+      style={{ width: '100%', height: 'auto', display: 'block' }}
+      aria-label="VeritasZK CPI program dependency graph"
+    >
+      <defs>
+        <filter id="arch-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <filter id="arch-glow-strong" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="8" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <radialGradient id="hub-bg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#4fffb0" stopOpacity="0.14" />
+          <stop offset="100%" stopColor="#4fffb0" stopOpacity="0.04" />
+        </radialGradient>
+        <radialGradient id="node-bg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#4fffb0" stopOpacity="0.06" />
+          <stop offset="100%" stopColor="#0f0f18" stopOpacity="0.0" />
+        </radialGradient>
+      </defs>
+
+      {/* Connection lines + data packets */}
+      {paths.map(p => (
+        <g key={p.id}>
+          {/* Static dashed base */}
+          <path
+            d={p.d}
+            stroke="#4fffb0"
+            strokeWidth="1"
+            strokeOpacity="0.15"
+            fill="none"
+            strokeDasharray="5 4"
+          />
+          {/* Animated dashed overlay */}
+          <path
+            d={p.d}
+            stroke="#4fffb0"
+            strokeWidth="1"
+            strokeOpacity={inView ? 0.45 : 0}
+            fill="none"
+            strokeDasharray="5 4"
+            style={{ transition: `stroke-opacity 0.4s ease ${parseFloat(p.begin) + 0.3}s` }}
+          >
+            {inView && (
+              <animate
+                attributeName="stroke-dashoffset"
+                from="36"
+                to="0"
+                dur={p.dur}
+                repeatCount="indefinite"
+              />
+            )}
+          </path>
+          {/* Data packet traveling along path */}
+          {inView && (
+            <circle r="3.5" fill="#4fffb0" filter="url(#arch-glow)" opacity="0.9">
+              <animateMotion
+                path={p.d}
+                dur={p.dur}
+                repeatCount="indefinite"
+                begin={p.begin}
+              />
+            </circle>
+          )}
+          {/* Connection label */}
+          <text
+            x={p.lx}
+            y={p.ly}
+            textAnchor="middle"
+            fontSize="9"
+            fontFamily='"JetBrains Mono", monospace'
+            fill="#4fffb0"
+            opacity={inView ? 0.55 : 0}
+            style={{ transition: 'opacity 0.6s ease 0.8s' }}
+          >
+            {p.label}
+          </text>
+        </g>
+      ))}
+
+      {/* Nodes */}
+      {nodes.map((n, i) => {
+        const x = n.cx - n.w / 2
+        const y = n.cy - n.h / 2
+        const isHub = !!(n as { hub?: boolean }).hub
+        const isAccent = !!(n as { accent?: boolean }).accent && !isHub
+        return (
+          <motion.g
+            key={n.label}
+            initial={{ opacity: 0, scale: 0.88 }}
+            animate={inView ? { opacity: 1, scale: 1 } : {}}
+            transition={{ duration: 0.55, delay: n.delay, ease: [0.16, 1, 0.3, 1] }}
+            style={{ transformOrigin: `${n.cx}px ${n.cy}px` }}
+          >
+            {/* Glow halo for hub */}
+            {isHub && (
+              <ellipse
+                cx={n.cx} cy={n.cy}
+                rx={n.w / 2 + 18} ry={n.h / 2 + 14}
+                fill="url(#hub-bg)"
+              >
+                <animate attributeName="rx" values={`${n.w/2+14};${n.w/2+22};${n.w/2+14}`} dur="3.5s" repeatCount="indefinite" />
+                <animate attributeName="ry" values={`${n.h/2+10};${n.h/2+16};${n.h/2+10}`} dur="3.5s" repeatCount="indefinite" />
+              </ellipse>
+            )}
+
+            {/* Node border (pulsing for hub) */}
+            <rect
+              x={x} y={y}
+              width={n.w} height={n.h}
+              rx="8"
+              fill={isHub ? 'rgba(79,255,176,0.08)' : isAccent ? 'rgba(79,255,176,0.05)' : 'rgba(255,255,255,0.025)'}
+              stroke={isHub ? '#4fffb0' : isAccent ? 'rgba(79,255,176,0.45)' : 'rgba(255,255,255,0.10)'}
+              strokeWidth={isHub ? '1.5' : '1'}
+            >
+              {isHub && (
+                <animate
+                  attributeName="stroke-opacity"
+                  values="0.6;1.0;0.6"
+                  dur="2.8s"
+                  repeatCount="indefinite"
+                />
+              )}
+            </rect>
+
+            {/* Corner accent marks for hub */}
+            {isHub && (
+              <>
+                <line x1={x} y1={y+12} x2={x} y2={y} stroke="#4fffb0" strokeWidth="1.5" strokeOpacity="0.7" />
+                <line x1={x} y1={y} x2={x+14} y2={y} stroke="#4fffb0" strokeWidth="1.5" strokeOpacity="0.7" />
+                <line x1={x+n.w-14} y1={y} x2={x+n.w} y2={y} stroke="#4fffb0" strokeWidth="1.5" strokeOpacity="0.7" />
+                <line x1={x+n.w} y1={y} x2={x+n.w} y2={y+12} stroke="#4fffb0" strokeWidth="1.5" strokeOpacity="0.7" />
+                <line x1={x} y1={y+n.h-12} x2={x} y2={y+n.h} stroke="#4fffb0" strokeWidth="1.5" strokeOpacity="0.7" />
+                <line x1={x} y1={y+n.h} x2={x+14} y2={y+n.h} stroke="#4fffb0" strokeWidth="1.5" strokeOpacity="0.7" />
+                <line x1={x+n.w-14} y1={y+n.h} x2={x+n.w} y2={y+n.h} stroke="#4fffb0" strokeWidth="1.5" strokeOpacity="0.7" />
+                <line x1={x+n.w} y1={y+n.h-12} x2={x+n.w} y2={y+n.h} stroke="#4fffb0" strokeWidth="1.5" strokeOpacity="0.7" />
+              </>
+            )}
+
+            {/* Program name */}
+            <text
+              x={n.cx} y={n.cy - 9}
+              textAnchor="middle"
+              fontSize={isHub ? '11.5' : '10.5'}
+              fontWeight={isHub ? '700' : '600'}
+              fontFamily='"JetBrains Mono", monospace'
+              fill={isHub || isAccent ? '#4fffb0' : '#c8c8d4'}
+              filter={isHub ? 'url(#arch-glow)' : undefined}
+            >
+              {n.label}
+            </text>
+
+            {/* Sub label */}
+            <text
+              x={n.cx} y={n.cy + 9}
+              textAnchor="middle"
+              fontSize="9.5"
+              fontFamily='"JetBrains Mono", monospace'
+              fill={isHub ? '#888896' : '#44444f'}
+            >
+              {n.sub}
+            </text>
+
+            {/* Transition count badge */}
+            <rect
+              x={x + n.w - 30} y={y - 10}
+              width="28" height="16"
+              rx="4"
+              fill={isHub ? 'rgba(79,255,176,0.15)' : 'rgba(255,255,255,0.06)'}
+              stroke={isHub ? 'rgba(79,255,176,0.35)' : 'rgba(255,255,255,0.10)'}
+              strokeWidth="0.75"
+            />
+            <text
+              x={x + n.w - 16} y={y - 2}
+              textAnchor="middle"
+              fontSize="8"
+              fontFamily='"JetBrains Mono", monospace'
+              fill={isHub ? '#4fffb0' : '#888896'}
+            >
+              {n.count}fn
+            </text>
+          </motion.g>
+        )
+      })}
+
+      {/* CPI label */}
+      <text
+        x="350" y="428"
+        textAnchor="middle"
+        fontSize="9"
+        fontFamily='"JetBrains Mono", monospace'
+        fill="#44444f"
+        letterSpacing="2"
+      >
+        CROSS-PROGRAM INVOCATION · DIAMOND PATTERN
+      </text>
+    </svg>
+  )
+}
 
 const SECTIONS = [
   { id: 'quickstart', label: 'Quickstart' },
@@ -117,7 +365,7 @@ export default function DocsPage() {
           </aside>
 
           {/* Main content */}
-          <main className="flex-1 min-w-0">
+          <main className="flex-1 min-w-0 overflow-x-hidden">
             {/* ─── QUICKSTART ─── */}
             <Section id="quickstart">
               <h2 className="font-display text-3xl mb-2" style={{ color: '#f4f4f0' }}>30-Second Quickstart</h2>
@@ -145,7 +393,7 @@ Commitment   : a1b2c3d4e5f6...
             {/* ─── CONTRACTS ─── */}
             <Section id="contracts">
               <h2 className="font-display text-3xl mb-2" style={{ color: '#f4f4f0' }}>Deployed Contracts</h2>
-              <p className="font-body text-sm mb-6" style={{ color: '#888896' }}>All 4 programs are live on Aleo Testnet. Verified on-chain.</p>
+              <p className="font-body text-sm mb-6" style={{ color: '#888896' }}>All 4 programs are live on Aleo Testnet. Verified onchain.</p>
               <div className="space-y-5">
                 {PROGRAMS.map(p => (
                   <div key={p.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -167,7 +415,7 @@ Commitment   : a1b2c3d4e5f6...
                     <div className="px-5 py-4">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="font-mono text-xs" style={{ color: '#44444f' }}>TX:</span>
-                        <span className="font-mono text-xs" style={{ color: '#888896' }}>{p.txHash}</span>
+                        <span className="font-mono text-xs" style={{ color: '#888896', wordBreak: 'break-all' }}>{p.txHash}</span>
                       </div>
                       <div>
                         <span className="font-mono text-xs mb-2 block" style={{ color: '#44444f' }}>TRANSITIONS ({p.transitions.length})</span>
@@ -364,59 +612,13 @@ if (expired) {
               <h2 className="font-display text-3xl mb-2" style={{ color: '#f4f4f0' }}>Architecture</h2>
               <p className="font-body text-sm mb-8" style={{ color: '#888896' }}>CPI flow between the four deployed Leo programs.</p>
 
-              {/* CPI diagram */}
+              {/* CPI diagram — animated */}
               <div
-                className="rounded-xl p-8 mb-8"
+                className="rounded-xl p-6 mb-8 overflow-hidden"
                 style={{ background: '#0a0a14', border: '1px solid rgba(255,255,255,0.07)' }}
               >
-                <p className="font-mono text-xs mb-8 tracking-widest" style={{ color: '#44444f' }}>PROGRAM DEPENDENCY GRAPH</p>
-                <div className="flex flex-col items-center gap-0">
-                  {/* Registry at top */}
-                  <div className="flex items-center justify-center mb-0">
-                    <div className="rounded-lg px-5 py-3 text-center" style={{ background: 'rgba(79,255,176,0.06)', border: '1px solid rgba(79,255,176,0.20)', minWidth: 200 }}>
-                      <p className="font-mono text-xs font-semibold" style={{ color: '#4fffb0' }}>veritaszk_registry.aleo</p>
-                      <p className="font-mono text-xs mt-0.5" style={{ color: '#44444f' }}>identity & credentials</p>
-                    </div>
-                  </div>
-                  {/* Down arrow */}
-                  <div className="flex flex-col items-center py-3">
-                    <svg width="2" height="32" viewBox="0 0 2 32">
-                      <line x1="1" y1="0" x2="1" y2="32" stroke="#4fffb0" strokeWidth="1" strokeDasharray="4 3" opacity="0.4">
-                        <animate attributeName="stroke-dashoffset" from="28" to="0" dur="1.5s" repeatCount="indefinite"/>
-                      </line>
-                    </svg>
-                    <span className="font-mono text-xs" style={{ color: '#4fffb0' }}>↓ validates</span>
-                  </div>
-                  {/* Core center */}
-                  <div className="flex items-center justify-center mb-0">
-                    <div className="rounded-lg px-5 py-3 text-center" style={{ background: 'rgba(79,255,176,0.10)', border: '2px solid rgba(79,255,176,0.30)', minWidth: 220 }}>
-                      <p className="font-mono text-xs font-bold" style={{ color: '#4fffb0' }}>veritaszk_core.aleo</p>
-                      <p className="font-mono text-xs mt-0.5" style={{ color: '#888896' }}>proof engine · central hub</p>
-                    </div>
-                  </div>
-                  {/* Three outputs */}
-                  <div className="flex items-start justify-center gap-16 mt-3">
-                    {[
-                      { label: '↙ audit events', prog: 'veritaszk_audit.aleo', sub: 'compliance trail' },
-                      { label: '↘ tier proofs', prog: 'veritaszk_threshold.aleo', sub: 'asset bundles' },
-                    ].map((node, i) => (
-                      <div key={i} className="flex flex-col items-center">
-                        <div className="py-3">
-                          <svg width="2" height="28" viewBox="0 0 2 28">
-                            <line x1="1" y1="0" x2="1" y2="28" stroke="#4fffb0" strokeWidth="1" strokeDasharray="4 3" opacity="0.4">
-                              <animate attributeName="stroke-dashoffset" from="28" to="0" dur="1.5s" repeatCount="indefinite"/>
-                            </line>
-                          </svg>
-                          <span className="font-mono text-xs block text-center" style={{ color: '#4fffb0', fontSize: 10 }}>{node.label}</span>
-                        </div>
-                        <div className="rounded-lg px-4 py-2.5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', minWidth: 170 }}>
-                          <p className="font-mono text-xs font-medium" style={{ color: '#f4f4f0', fontSize: 11 }}>{node.prog}</p>
-                          <p className="font-mono text-xs mt-0.5" style={{ color: '#44444f', fontSize: 10 }}>{node.sub}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <p className="font-mono text-xs mb-4 tracking-widest" style={{ color: '#44444f' }}>LIVE PROGRAM DEPENDENCY GRAPH</p>
+                <AnimatedCPIDiagram />
               </div>
 
               <div className="rounded-xl p-5" style={{ background: 'rgba(255,68,85,0.04)', border: '1px solid rgba(255,68,85,0.12)' }}>

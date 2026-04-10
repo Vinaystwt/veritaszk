@@ -134,7 +134,7 @@ function ProofCard({ proof, onVerify }: { proof: ProofRecord; onVerify: () => vo
         <p className="font-mono text-xs mb-4 tracking-widest" style={{ color: '#44444f' }}>AUDIT RECORD</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Verifier Identity', value: 'Confidential', note: 'Verifier privacy is a protocol feature — identities never recorded on-chain', accent: true },
+            { label: 'Verifier Identity', value: 'Confidential', note: 'Verifier privacy is a protocol feature — identities never recorded onchain', accent: true },
             { label: 'Org Commitment', value: truncateCommitment(proof.commitment, 6) },
             { label: 'Tier at Verification', value: `Tier ${proof.tier} — ${proof.tierName}` },
             { label: 'Block Verified', value: verified ? `#${verifiedBlock?.toLocaleString()}` : 'Pending verification' },

@@ -9,6 +9,7 @@ import { TierBadge } from '@/components/ui/TierBadge'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { CommitmentDisplay } from '@/components/ui/CommitmentDisplay'
 import html2canvas from 'html2canvas'
+import QRCode from 'qrcode'
 
 // ─── Tier calculator ────────────────────────────────────────────────────────
 function computeTier(assets: number, liabilities: number): { tier: 1|2|3|4; ratio: number } | null {
@@ -327,8 +328,8 @@ function Step2({ orgName, isDemo, onComplete }: {
 }
 
 // ─── Certificate component (hidden, rendered for download) ──────────────────
-function CertificateTemplate({ orgName, tier, tierName, ratio, block, commitment }: {
-  orgName: string; tier: number; tierName: string; ratio: number; block: number; commitment: string
+function CertificateTemplate({ orgName, tier, tierName, ratio, block, commitment, qrDataUrl }: {
+  orgName: string; tier: number; tierName: string; ratio: number; block: number; commitment: string; qrDataUrl: string
 }) {
   const tierInfo = TIERS.find(t => t.tier === tier)!
   return (
@@ -391,6 +392,14 @@ function CertificateTemplate({ orgName, tier, tierName, ratio, block, commitment
         <div style={{ fontSize: 10, color: '#44444f' }}>veritaszk_threshold.aleo · Aleo Testnet · 2026</div>
         <div style={{ fontSize: 12, color: tierInfo.color, letterSpacing: 1 }}>Prove Solvency. Reveal Nothing.</div>
       </div>
+      {/* QR code — bottom-right, links to /verifier?commitment=... */}
+      {qrDataUrl && (
+        <div style={{ position: 'absolute', bottom: 44, right: 44, textAlign: 'center' }}>
+          <div style={{ fontSize: 8, color: '#44444f', letterSpacing: 3, marginBottom: 4 }}>VERIFY</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qrDataUrl} width={72} height={72} alt="QR verification code" style={{ display: 'block', imageRendering: 'pixelated' }} />
+        </div>
+      )}
     </div>
   )
 }
@@ -400,8 +409,21 @@ function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }
   orgName: string; tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number; isDemo: boolean
 }) {
   const [downloading, setDownloading] = useState(false)
+  const [revokeState, setRevokeState] = useState<'idle' | 'confirming' | 'revoking' | 'revoked'>('idle')
+  const [qrDataUrl, setQrDataUrl] = useState('')
   const tierInfo = TIERS.find(t => t.tier === tier)!
   const explorer = PROGRAMS.find(p => p.id === 'veritaszk_threshold.aleo')?.explorerUrl ?? ''
+
+  // Generate QR code linking to the verifier page for this commitment
+  useEffect(() => {
+    const url = `https://veritaszk.vercel.app/verifier?commitment=${encodeURIComponent(commitment)}`
+    QRCode.toDataURL(url, {
+      color: { dark: '#4fffb0', light: '#08080d' },
+      margin: 1,
+      width: 80,
+      errorCorrectionLevel: 'M',
+    }).then(setQrDataUrl).catch(() => {})
+  }, [commitment])
 
   const downloadCert = async () => {
     setDownloading(true)
@@ -418,14 +440,98 @@ function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }
     }
   }
 
+  const confirmRevoke = async () => {
+    setRevokeState('revoking')
+    try {
+      if (isDemo) {
+        await new Promise(r => setTimeout(r, 1600))
+      } else {
+        await window.shield?.requestTransaction?.({
+          programId: 'veritaszk_core.aleo',
+          functionName: 'revoke_proof_record',
+          inputs: [commitment],
+          fee: 100000,
+        })
+      }
+      setRevokeState('revoked')
+    } catch {
+      setRevokeState('idle')
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* Revoke confirmation modal */}
+      <AnimatePresence>
+        {revokeState === 'confirming' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            style={{ background: 'rgba(8,8,13,0.85)', backdropFilter: 'blur(4px)' }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+              className="rounded-2xl p-7 max-w-md w-full"
+              style={{ background: '#0f0f18', border: '1px solid rgba(255,68,85,0.20)' }}
+            >
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,68,85,0.10)', border: '1px solid rgba(255,68,85,0.25)' }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 2L14 12H2L8 2Z" stroke="#ff4455" strokeWidth="1.5" strokeLinejoin="round"/>
+                    <line x1="8" y1="7" x2="8" y2="9.5" stroke="#ff4455" strokeWidth="1.5" strokeLinecap="round"/>
+                    <circle cx="8" cy="11" r="0.7" fill="#ff4455"/>
+                  </svg>
+                </div>
+                <h3 className="font-display text-xl" style={{ color: '#f4f4f0' }}>Revoke Proof</h3>
+              </div>
+              <p className="font-body text-sm leading-relaxed mb-6" style={{ color: '#888896' }}>
+                Revoking this proof will immediately mark your organization as unverified.
+                This action cannot be undone. Your proof commitment will be flagged as{' '}
+                <span style={{ color: '#ff4455' }} className="font-mono">REVOKED</span>{' '}
+                in the public ledger.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setRevokeState('idle')}
+                  className="flex-1 py-2.5 rounded-lg font-body text-sm font-medium transition-all"
+                  style={{ background: 'rgba(79,255,176,0.06)', border: '1px solid rgba(79,255,176,0.20)', color: '#4fffb0', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRevoke}
+                  className="flex-1 py-2.5 rounded-lg font-body text-sm font-medium transition-all"
+                  style={{ background: 'rgba(255,68,85,0.12)', border: '1px solid rgba(255,68,85,0.35)', color: '#ff4455', cursor: 'pointer' }}
+                >
+                  Confirm Revoke
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main tier result */}
-      <div className="rounded-xl p-8 text-center" style={{ background: `${tierInfo.color}08`, border: `2px solid ${tierInfo.color}30` }}>
-        <TierBadge tier={tier} size="xl" showName showRatio />
-        <p className="font-mono text-4xl font-bold mt-4" style={{ color: tierInfo.color }}>{ratio.toFixed(2)}× coverage</p>
-        <p className="font-mono text-sm mt-2" style={{ color: '#888896' }}>{tierInfo.regulatory}</p>
-      </div>
+      {revokeState === 'revoked' ? (
+        <div className="rounded-xl p-8 text-center" style={{ background: 'rgba(255,68,85,0.05)', border: '2px solid rgba(255,68,85,0.25)' }}>
+          <p className="font-mono text-xs tracking-widest mb-3" style={{ color: '#ff4455' }}>STATUS</p>
+          <p className="font-display text-3xl mb-2" style={{ color: '#ff4455' }}>REVOKED</p>
+          <p className="font-mono text-sm" style={{ color: '#888896' }}>
+            This commitment has been flagged in the public ledger.{isDemo && ' (Demo)'}
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl p-8 text-center" style={{ background: `${tierInfo.color}08`, border: `2px solid ${tierInfo.color}30` }}>
+          <TierBadge tier={tier} size="xl" showName showRatio />
+          <p className="font-mono text-4xl font-bold mt-4" style={{ color: tierInfo.color }}>{ratio.toFixed(2)}× coverage</p>
+          <p className="font-mono text-sm mt-2" style={{ color: '#888896' }}>{tierInfo.regulatory}</p>
+        </div>
+      )}
 
       {/* Details */}
       <div className="rounded-xl p-5 space-y-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -448,32 +554,63 @@ function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }
       </div>
 
       {/* Actions */}
-      <div className="flex flex-col gap-3">
-        <a
-          href={`${explorer}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full py-3 rounded-lg font-body text-sm font-medium text-center transition-all"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', color: '#f4f4f0' }}
-        >
-          View on Explorer ↗
-        </a>
-        <a
-          href={`/verifier?commitment=${commitment}`}
-          className="w-full py-3 rounded-lg font-body text-sm font-medium text-center transition-all"
-          style={{ background: 'rgba(79,255,176,0.06)', border: '1px solid rgba(79,255,176,0.15)', color: '#4fffb0' }}
-        >
-          Verify Proof →
-        </a>
-        <button
-          onClick={downloadCert}
-          disabled={downloading}
-          className="w-full py-3 rounded-lg font-body text-sm font-medium transition-all flex items-center justify-center gap-2"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#888896', cursor: 'pointer' }}
-        >
-          {downloading ? <><LoadingSpinner size="sm" color="#888896" /> Generating...</> : '⬇ Download Certificate (PNG)'}
-        </button>
-      </div>
+      {revokeState !== 'revoked' && (
+        <div className="flex flex-col gap-3">
+          <a
+            href={`${explorer}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3 rounded-lg font-body text-sm font-medium text-center transition-all"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', color: '#f4f4f0' }}
+          >
+            View on Explorer ↗
+          </a>
+          <a
+            href={`/verifier?commitment=${commitment}`}
+            className="w-full py-3 rounded-lg font-body text-sm font-medium text-center transition-all"
+            style={{ background: 'rgba(79,255,176,0.06)', border: '1px solid rgba(79,255,176,0.15)', color: '#4fffb0' }}
+          >
+            Verify Proof →
+          </a>
+          <button
+            onClick={downloadCert}
+            disabled={downloading}
+            className="w-full py-3 rounded-lg font-body text-sm font-medium transition-all flex items-center justify-center gap-2"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#888896', cursor: 'pointer' }}
+          >
+            {downloading ? <><LoadingSpinner size="sm" color="#888896" /> Generating...</> : '⬇ Download Certificate (PNG)'}
+          </button>
+
+          {/* Revoke — smaller, destructive, separated */}
+          <div className="pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+            <button
+              onClick={() => setRevokeState('confirming')}
+              disabled={revokeState === 'revoking'}
+              className="w-full py-2 rounded-lg font-body text-xs font-medium transition-all flex items-center justify-center gap-1.5"
+              style={{
+                background: 'rgba(255,68,85,0.04)',
+                border: '1px solid rgba(255,68,85,0.18)',
+                color: '#ff4455',
+                cursor: 'pointer',
+                opacity: revokeState === 'revoking' ? 0.6 : 1,
+              }}
+            >
+              {revokeState === 'revoking' ? (
+                <><LoadingSpinner size="sm" color="#ff4455" /> Revoking...</>
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M6 1.5L10.5 9H1.5L6 1.5Z" stroke="#ff4455" strokeWidth="1.2" strokeLinejoin="round"/>
+                    <line x1="6" y1="5" x2="6" y2="7" stroke="#ff4455" strokeWidth="1.2" strokeLinecap="round"/>
+                    <circle cx="6" cy="8" r="0.5" fill="#ff4455"/>
+                  </svg>
+                  Revoke Proof
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hidden certificate for download */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
@@ -484,6 +621,7 @@ function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }
           ratio={ratio}
           block={15613711}
           commitment={commitment}
+          qrDataUrl={qrDataUrl}
         />
       </div>
     </div>
@@ -582,6 +720,7 @@ function OrganizationContent() {
   const [currentStep, setCurrentStep] = useState(1)
   const [orgData, setOrgData] = useState<{ orgName: string; commitment: string; txHash: string } | null>(null)
   const [proofData, setProofData] = useState<{ tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number } | null>(null)
+  const [liveProofStatus, setLiveProofStatus] = useState<{ isExpired?: boolean; proofStatus?: number } | null>(null)
 
   // Auto-enter demo mode if ?demo=true
   useEffect(() => {
@@ -589,6 +728,28 @@ function OrganizationContent() {
       wallet.enterDemoMode()
     }
   }, [isAutoDemo, wallet.state])
+
+  // watchProof SDK — live expiry monitoring once a commitment is confirmed
+  useEffect(() => {
+    if (!proofData?.commitment) return
+    let stopped = false
+    const cleanup = (() => {
+      try {
+        const { watchProof } = require('veritaszk-sdk') as { watchProof: (c: string, cb: (s: unknown) => void, url: string, interval: number) => () => void }
+        return watchProof(
+          proofData.commitment,
+          (status: unknown) => {
+            if (!stopped) setLiveProofStatus(status as { isExpired?: boolean; proofStatus?: number })
+          },
+          'https://veritaszk-production.up.railway.app',
+          30000
+        )
+      } catch {
+        return () => {}
+      }
+    })()
+    return () => { stopped = true; cleanup() }
+  }, [proofData?.commitment])
 
   const isDemo = wallet.isDemo
   const isAuthenticated = wallet.state === 'CONNECTED' || isDemo
@@ -684,7 +845,21 @@ function OrganizationContent() {
                 )}
                 {currentStep === 3 && orgData && proofData && (
                   <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
-                    <h2 className="font-display text-xl mb-6" style={{ color: '#f4f4f0' }}>Step 3 — Attestation Confirmed</h2>
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="font-display text-xl" style={{ color: '#f4f4f0' }}>Step 3 — Attestation Confirmed</h2>
+                      {liveProofStatus && (
+                        <span
+                          className="font-mono text-xs px-2 py-0.5 rounded"
+                          style={{
+                            background: liveProofStatus.isExpired ? 'rgba(255,68,85,0.10)' : 'rgba(79,255,176,0.06)',
+                            border: `1px solid ${liveProofStatus.isExpired ? 'rgba(255,68,85,0.25)' : 'rgba(79,255,176,0.20)'}`,
+                            color: liveProofStatus.isExpired ? '#ff4455' : '#4fffb0',
+                          }}
+                        >
+                          {liveProofStatus.isExpired ? 'EXPIRED' : 'LIVE ●'}
+                        </span>
+                      )}
+                    </div>
                     <Step3
                       orgName={orgData.orgName}
                       tier={proofData.tier}

@@ -176,6 +176,190 @@ function ZKDiagram() {
   )
 }
 
+// ─── ZK Collapse Animation — hex-chars converging to T4 badge ───────────────
+// Cycle: 4.2s drift → 1.8s collapse → 2.2s hold → 1.6s disperse → repeat
+function ZKFieldAnimation() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const HEX = '0123456789abcdef'
+    const rh = () => HEX[Math.random() * 16 | 0] + HEX[Math.random() * 16 | 0]
+
+    const NUM = 320
+    const T_DRIFT = 4200
+    const T_COLLAPSE = 1800
+    const T_HOLD = 2200
+    const T_DISPERSE = 1600
+
+    interface Particle {
+      x: number; y: number; vx: number; vy: number
+      char: string; charTimer: number; charRate: number
+      targetX: number; targetY: number; baseAlpha: number
+    }
+
+    let W = 0, H = 0, animId = 0, last = 0
+    let phase: 'drift' | 'collapse' | 'hold' | 'disperse' = 'drift'
+    let phaseT = 0
+    let particles: Particle[] = []
+    let targets: { x: number; y: number }[] = []
+
+    const buildTargets = () => {
+      // Badge zone: right half of canvas, vertically centred
+      const bX = Math.round(W * 0.54)
+      const bY = Math.round(H * 0.12)
+      const bW = Math.round(W * 0.44)
+      const bH = Math.round(H * 0.76)
+      if (bW < 20 || bH < 20) return
+
+      const tmp = document.createElement('canvas')
+      tmp.width = bW; tmp.height = bH
+      const tc = tmp.getContext('2d')
+      if (!tc) return
+      tc.fillStyle = '#000'
+      tc.fillRect(0, 0, bW, bH)
+      const fs = Math.min(Math.floor(bH * 0.72), Math.floor(bW * 0.64))
+      tc.font = `700 ${fs}px "JetBrains Mono", monospace`
+      tc.fillStyle = '#fff'
+      tc.textAlign = 'center'
+      tc.textBaseline = 'middle'
+      tc.fillText('T4', bW / 2, bH / 2)
+
+      const { data } = tc.getImageData(0, 0, bW, bH)
+      const step = 7
+      const pts: { x: number; y: number }[] = []
+      for (let y = 0; y < bH; y += step) {
+        for (let x = 0; x < bW; x += step) {
+          if (data[(y * bW + x) * 4] > 128) pts.push({ x: bX + x, y: bY + y })
+        }
+      }
+      targets = pts
+    }
+
+    const assignTargets = () => {
+      if (!targets.length) return
+      const shuffled = [...targets].sort(() => Math.random() - 0.5)
+      particles.forEach((p, i) => {
+        const t = shuffled[i % shuffled.length]
+        p.targetX = t.x; p.targetY = t.y
+      })
+    }
+
+    const initParticles = () => {
+      particles = Array.from({ length: NUM }, () => ({
+        x: Math.random() * W, y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.22,
+        vy: (Math.random() - 0.5) * 0.22,
+        char: rh(), charTimer: Math.random() * 800,
+        charRate: 380 + Math.random() * 1100,
+        targetX: 0, targetY: 0,
+        baseAlpha: 0.03 + Math.random() * 0.07,
+      }))
+    }
+
+    const resize = () => {
+      W = canvas.offsetWidth; H = canvas.offsetHeight
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = W * dpr; canvas.height = H * dpr
+      ctx.scale(dpr, dpr)
+      buildTargets()
+      assignTargets()
+    }
+
+    const draw = (ts: number) => {
+      const dt = Math.min(ts - last, 50); last = ts
+      phaseT += dt
+
+      if (phase === 'drift' && phaseT >= T_DRIFT) {
+        phase = 'collapse'; phaseT = 0; assignTargets()
+      } else if (phase === 'collapse' && phaseT >= T_COLLAPSE) {
+        phase = 'hold'; phaseT = 0
+      } else if (phase === 'hold' && phaseT >= T_HOLD) {
+        phase = 'disperse'; phaseT = 0
+        particles.forEach(p => {
+          const a = Math.random() * Math.PI * 2
+          const s = 0.6 + Math.random() * 1.2
+          p.vx = Math.cos(a) * s; p.vy = Math.sin(a) * s
+        })
+      } else if (phase === 'disperse' && phaseT >= T_DISPERSE) {
+        phase = 'drift'; phaseT = 0
+        particles.forEach(p => {
+          p.vx = (Math.random() - 0.5) * 0.22
+          p.vy = (Math.random() - 0.5) * 0.22
+          p.baseAlpha = 0.03 + Math.random() * 0.07
+        })
+      }
+
+      ctx.clearRect(0, 0, W, H)
+      ctx.font = '10.5px "JetBrains Mono", monospace'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+
+      const colT = phase === 'collapse' ? Math.min(phaseT / T_COLLAPSE, 1) : 0
+      const disT = phase === 'disperse' ? Math.min(phaseT / T_DISPERSE, 1) : 0
+
+      particles.forEach(p => {
+        p.charTimer += dt
+        if (p.charTimer > p.charRate) {
+          p.char = rh(); p.charTimer = 0; p.charRate = 380 + Math.random() * 1100
+        }
+
+        let alpha = p.baseAlpha
+
+        if (phase === 'drift') {
+          p.x += p.vx; p.y += p.vy
+          if (p.x < -12) p.x = W + 12
+          if (p.x > W + 12) p.x = -12
+          if (p.y < -12) p.y = H + 12
+          if (p.y > H + 12) p.y = -12
+        } else if (phase === 'collapse') {
+          // Cubic ease-out: fast start, gentle landing
+          const ease = 1 - Math.pow(1 - colT, 3)
+          p.x += (p.targetX - p.x) * ease * 0.10
+          p.y += (p.targetY - p.y) * ease * 0.10
+          alpha = p.baseAlpha + colT * 0.82
+        } else if (phase === 'hold') {
+          // Tight pixel jitter — chars shimmer while locked in formation
+          p.x = p.targetX + (Math.random() - 0.5) * 1.4
+          p.y = p.targetY + (Math.random() - 0.5) * 1.4
+          alpha = 0.88
+        } else if (phase === 'disperse') {
+          p.x += p.vx; p.y += p.vy
+          p.vx *= 0.965; p.vy *= 0.965
+          alpha = 0.88 * (1 - disT) + p.baseAlpha * disT
+        }
+
+        ctx.fillStyle = `rgba(79,255,176,${Math.min(alpha, 0.92).toFixed(3)})`
+        ctx.fillText(p.char, p.x, p.y)
+      })
+
+      animId = requestAnimationFrame(draw)
+    }
+
+    resize()
+    initParticles()
+    assignTargets()
+
+    const onResize = () => { resize(); if (phase === 'drift') assignTargets() }
+    window.addEventListener('resize', onResize)
+    animId = requestAnimationFrame(draw)
+
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', onResize) }
+  }, [])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      aria-hidden="true"
+    />
+  )
+}
+
 // ─── Architecture node ───────────────────────────────────────────────────────
 function ArchNode({ label, sub, accent = false }: { label: string; sub?: string; accent?: boolean }) {
   return (
@@ -263,24 +447,65 @@ export default function HomePage() {
   const totalOrgsCounter = useCounter(stats?.totalOrgs ?? 0)
   const activeProofsCounter = useCounter(stats?.activeProofs ?? 0)
 
+  // Inline proof demo
+  const [proofDemo, setProofDemo] = useState<null | 'computing' | 'submitting' | 'done'>(null)
+  const [demoProgress, setDemoProgress] = useState(0)
+
+  const runProofDemo = () => {
+    if (proofDemo !== null) return
+    setProofDemo('computing')
+    setDemoProgress(0)
+
+    // Animate progress 0→100 over 1000ms
+    const start = Date.now()
+    const tick1 = () => {
+      const p = Math.min((Date.now() - start) / 1000, 1)
+      setDemoProgress(p * 100)
+      if (p < 1) requestAnimationFrame(tick1)
+      else {
+        setProofDemo('submitting')
+        setDemoProgress(0)
+        const start2 = Date.now()
+        const tick2 = () => {
+          const p2 = Math.min((Date.now() - start2) / 1500, 1)
+          setDemoProgress(p2 * 100)
+          if (p2 < 1) requestAnimationFrame(tick2)
+          else setProofDemo('done')
+        }
+        requestAnimationFrame(tick2)
+      }
+    }
+    requestAnimationFrame(tick1)
+  }
+
   // Doubled feed for seamless loop
   const feedItems = proofs.length > 0 ? [...proofs, ...proofs] : [...DEMO_ORGS, ...DEMO_ORGS].map(d => ({ ...d, issuedAt: new Date(Date.now() - 3600000).toISOString() }) as ProofRecord)
 
   return (
     <div className="min-h-screen bg-base">
       {/* ── HERO ─────────────────────────────────────────────── */}
-      <section className="relative min-h-[92vh] flex items-center grid-bg overflow-hidden">
-        {/* Radial glow */}
+      <section className="relative min-h-[92vh] flex items-center overflow-hidden" style={{ background: '#08080d' }}>
+        {/* ZK hex field — live cryptographic canvas */}
+        <ZKFieldAnimation />
+        {/* Deep vignette so text stays primary */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'radial-gradient(ellipse 70% 50% at 50% 40%, rgba(79,255,176,0.06) 0%, transparent 70%)',
+            background: [
+              'radial-gradient(ellipse 55% 70% at 38% 50%, rgba(8,8,13,0.0) 0%, rgba(8,8,13,0.82) 60%, rgba(8,8,13,0.97) 100%)',
+              'radial-gradient(ellipse 30% 40% at 80% 50%, rgba(8,8,13,0.70) 0%, transparent 100%)',
+              'linear-gradient(to bottom, rgba(8,8,13,0.5) 0%, transparent 15%, transparent 85%, rgba(8,8,13,0.8) 100%)',
+            ].join(', '),
           }}
         />
-        {/* Scan line */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="scan-line" />
-        </div>
+        {/* Accent glow beneath headline */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            left: '0%', top: '35%', width: '45%', height: '30%',
+            background: 'radial-gradient(ellipse at 30% 50%, rgba(79,255,176,0.08) 0%, transparent 70%)',
+          }}
+        />
 
         <div className="relative max-w-7xl mx-auto px-6 py-24 w-full">
           <div className="max-w-4xl">
@@ -352,15 +577,129 @@ export default function HomePage() {
               >
                 View Live Demo →
               </Link>
+              <button
+                onClick={runProofDemo}
+                disabled={proofDemo !== null && proofDemo !== 'done'}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-body font-medium text-base transition-all"
+                style={{
+                  background: 'rgba(229,255,79,0.05)',
+                  border: '1px solid rgba(229,255,79,0.18)',
+                  color: '#e5ff4f',
+                  cursor: proofDemo !== null && proofDemo !== 'done' ? 'default' : 'pointer',
+                  opacity: proofDemo !== null && proofDemo !== 'done' ? 0.7 : 1,
+                }}
+              >
+                {proofDemo === null ? 'Run Demo Proof →' : proofDemo === 'done' ? 'Run Again →' : 'Running…'}
+              </button>
             </motion.div>
+
+            {/* Inline proof demo panel */}
+            <AnimatePresence>
+              {proofDemo !== null && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div
+                    className="rounded-xl p-5 relative"
+                    style={{ background: 'rgba(10,10,20,0.95)', border: '1px solid rgba(79,255,176,0.15)' }}
+                  >
+                    <button
+                      onClick={() => { setProofDemo(null); setDemoProgress(0) }}
+                      className="absolute top-3 right-3 font-mono text-xs px-2 py-0.5 rounded"
+                      style={{ color: '#44444f', background: 'rgba(255,255,255,0.04)', cursor: 'pointer' }}
+                    >
+                      ✕
+                    </button>
+
+                    <p className="font-mono text-xs tracking-widest mb-4" style={{ color: '#e5ff4f' }}>
+                      DEMO PROOF — NO WALLET REQUIRED
+                    </p>
+
+                    <AnimatePresence mode="wait">
+                      {proofDemo === 'computing' && (
+                        <motion.div key="computing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            {[
+                              { k: 'DEMO ORG', v: 'DemoExchange' },
+                              { k: 'ASSETS', v: '[HIDDEN]' },
+                              { k: 'LIABILITIES', v: '[HIDDEN]' },
+                              { k: 'WALLETS', v: '[HIDDEN]' },
+                            ].map(d => (
+                              <div key={d.k}>
+                                <p className="font-mono text-xs mb-0.5" style={{ color: '#44444f' }}>{d.k}</p>
+                                <p className="font-mono text-xs" style={{ color: d.v === '[HIDDEN]' ? '#44444f' : '#f4f4f0' }}>{d.v}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="font-mono text-xs mb-2" style={{ color: '#888896' }}>Computing ZK range proof…</p>
+                          <div className="rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)', height: 3 }}>
+                            <div
+                              className="h-full rounded-full transition-none"
+                              style={{ width: `${demoProgress}%`, background: '#4fffb0', transition: 'width 16ms linear' }}
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {proofDemo === 'submitting' && (
+                        <motion.div key="submitting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          <p className="font-mono text-xs mb-1" style={{ color: '#4fffb0' }}>✓ Proof computation complete</p>
+                          <p className="font-mono text-xs mb-2" style={{ color: '#888896' }}>Submitting to Aleo testnet…</p>
+                          <div className="rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)', height: 3 }}>
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${demoProgress}%`, background: '#e5ff4f', transition: 'width 16ms linear' }}
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {proofDemo === 'done' && (
+                        <motion.div key="done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                          <div className="flex items-start gap-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-mono text-sm font-bold" style={{ color: '#4fffb0' }}>✓ PROOF VERIFIED</span>
+                                <span className="font-mono text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(229,255,79,0.08)', color: '#e5ff4f', border: '1px solid rgba(229,255,79,0.20)' }}>DEMO</span>
+                              </div>
+                              <TierBadge tier={3} size="lg" showName showRatio />
+                              <div className="mt-3 space-y-1">
+                                <p className="font-mono text-xs" style={{ color: '#888896' }}>Assets ≥ 2.0× Liabilities</p>
+                                <p className="font-mono text-xs" style={{ color: '#44444f' }}>
+                                  Commitment: <span style={{ color: '#888896' }}>at1demo...0000</span>
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-4 pt-3 flex gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <Link
+                              href="/verifier"
+                              className="font-mono text-xs"
+                              style={{ color: '#4fffb0' }}
+                            >
+                              View full verifier →
+                            </Link>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Floating proof card */}
+          {/* Floating proof card — hidden on mobile, shown on lg+ */}
+          <div className="hidden lg:block absolute right-6 top-1/2 -translate-y-1/2">
           <motion.div
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.9, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute right-6 top-1/2 -translate-y-1/2 hidden lg:block float"
+            className="float"
           >
             <div
               className="rounded-xl p-5 w-64"
@@ -392,6 +731,7 @@ export default function HomePage() {
               </div>
             </div>
           </motion.div>
+          </div>
         </div>
       </section>
 
@@ -434,7 +774,7 @@ export default function HomePage() {
               >
                 "{SZABO_SENTENCE}"
                 <footer className="font-body text-sm mt-3" style={{ color: '#888896' }}>
-                  — Nick Szabo, 1993. First implemented on-chain: VeritasZK, 2026.
+                  — Nick Szabo, 1993. First implemented onchain: VeritasZK, 2026.
                 </footer>
               </blockquote>
             </div>
@@ -474,8 +814,8 @@ export default function HomePage() {
       </section>
 
       {/* ── PRIVACY VISUALIZATION ────────────────────────────── */}
-      <section className="py-16 md:py-24" style={{ background: '#0a0a14' }}>
-        <div className="max-w-7xl mx-auto px-6">
+      <section className="py-16 md:py-24 overflow-hidden" style={{ background: '#0a0a14' }}>
+        <div className="max-w-7xl mx-auto px-6 overflow-hidden">
           <FadeIn>
             <div className="text-center mb-12">
               <p className="font-mono text-xs tracking-widest mb-4" style={{ color: '#44444f' }}>HOW PRIVACY WORKS</p>
@@ -485,7 +825,9 @@ export default function HomePage() {
             </div>
           </FadeIn>
           <FadeIn delay={0.2}>
-            <ZKDiagram />
+            <div className="overflow-x-auto">
+              <ZKDiagram />
+            </div>
           </FadeIn>
         </div>
       </section>
@@ -558,7 +900,7 @@ export default function HomePage() {
               {
                 step: '01',
                 title: 'Register Your Organization',
-                body: 'Your organization registers an on-chain identity via veritaszk_registry.aleo. Delegate authority to your compliance team. No financial data touches the chain.',
+                body: 'Your organization registers an onchain identity via veritaszk_registry.aleo. Delegate authority to your compliance team. No financial data touches the chain.',
                 program: 'veritaszk_registry.aleo',
               },
               {
@@ -747,7 +1089,7 @@ export default function HomePage() {
             {[
               {
                 title: 'No off-chain proving required',
-                body: 'ZK proofs execute in Leo transitions on-chain. There is no external prover service, no trusted setup ceremony, no infrastructure to operate.',
+                body: 'ZK proofs execute in Leo transitions onchain. There is no external prover service, no trusted setup ceremony, no infrastructure to operate.',
               },
               {
                 title: 'Programmable privacy by design',
@@ -755,7 +1097,7 @@ export default function HomePage() {
               },
               {
                 title: 'Regulatory-ready auditability',
-                body: 'veritaszk_audit.aleo creates a public-but-private audit trail: commitment hashes and tier outcomes are permanently on-chain, while all financial figures remain off it.',
+                body: 'veritaszk_audit.aleo creates a public-but-private audit trail: commitment hashes and tier outcomes are permanently onchain, while all financial figures remain off it.',
               },
             ].map((item, i) => (
               <FadeIn key={i} delay={i * 0.1}>

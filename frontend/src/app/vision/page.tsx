@@ -53,14 +53,14 @@ const INCIDENTS = [
 const TIMELINE = [
   { year: '1993', actor: 'Nick Szabo', event: '"Confidential Auditing" — unforgeable audit logs via secure timestamps. No implementation existed.' },
   { year: '2010s', actor: 'ZK-SNARK Theory', event: 'Zero-knowledge succinct non-interactive arguments of knowledge become computationally feasible.' },
-  { year: '2024', actor: 'Aleo Mainnet', event: 'First privacy-native L1 with programmable ZK. Leo language enables on-chain private execution.' },
-  { year: '2026', actor: 'VeritasZK', event: 'First on-chain implementation of Szabo\'s 1993 protocol. Solvency proven without disclosure.' },
+  { year: '2024', actor: 'Aleo Mainnet', event: 'First privacy-native L1 with programmable ZK. Leo language enables onchain private execution.' },
+  { year: '2026', actor: 'VeritasZK', event: 'First onchain implementation of Szabo\'s 1993 protocol. Solvency proven without disclosure.' },
 ]
 
 const ROADMAP = [
   { title: 'zkTLS Bridge', desc: 'Prove custodied balances from Fireblocks, Coinbase, and institutional custodians via TLS attestation — without API key exposure.' },
   { title: 'Cross-chain Verification', desc: 'Accept multi-chain asset bundles from Ethereum, Solana, and BTC networks via bridge attestations.' },
-  { title: 'Institutional Integrations', desc: 'Native integrations with Maple Finance, Clearpool, and TrueFi — enabling on-chain credit underwriting without balance sheet disclosure.' },
+  { title: 'Institutional Integrations', desc: 'Native integrations with Maple Finance, Clearpool, and TrueFi — enabling onchain credit underwriting without balance sheet disclosure.' },
   { title: 'Multi-sig Proof Submission', desc: 'Require M-of-N signatories to authorize proof submissions — matching institutional governance requirements.' },
 ]
 
@@ -219,7 +219,7 @@ export default function VisionPage() {
             <p className="text-base leading-relaxed mb-12 max-w-2xl font-body" style={{ color: '#888896' }}>
               VeritasZK implements Szabo's 1993 protocol on Aleo — the first blockchain purpose-built for
               programmable privacy. Private inputs enter a Leo transition. A ZK range proof executes
-              off-chain but is verified on-chain. Only a tier classification and a boolean emerge publicly.
+              off-chain but is verified onchain. Only a tier classification and a boolean emerge publicly.
               No amounts. No addresses. No composition.
             </p>
           </FadeIn>

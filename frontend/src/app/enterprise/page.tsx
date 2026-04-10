@@ -26,7 +26,7 @@ const USE_CASES = [
   {
     type: 'Crypto Exchanges',
     challenge: 'Proof-of-reserves requirements without exposing wallet addresses to exploit-bots.',
-    solution: 'Submit asset bundles via veritaszk_threshold.aleo. Publish only a tier badge. No hot wallet addresses on-chain.',
+    solution: 'Submit asset bundles via veritaszk_threshold.aleo. Publish only a tier badge. No hot wallet addresses onchain.',
     tier: 4 as const,
   },
   {
@@ -151,7 +151,7 @@ export default function EnterprisePage() {
                     { label: 'Frequency', value: 'On-demand, any time', accent: true },
                     { label: 'Duration', value: '< 5 minutes', accent: true },
                     { label: 'Cost', value: 'Near zero (gas fees only)', accent: true },
-                    { label: 'Output', value: 'Cryptographic on-chain attestation', accent: true },
+                    { label: 'Output', value: 'Cryptographic onchain attestation', accent: true },
                     { label: 'Verification', value: 'Anyone, instantly, no setup', accent: true },
                     { label: 'Privacy', value: 'Zero financial data disclosed', accent: true },
                     { label: 'Latency', value: 'Real-time, block-anchored', accent: true },

@@ -40,15 +40,15 @@ export function useShieldWallet(): ShieldWallet {
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const attemptRef = useRef(0)
 
-  // On mount: check if Shield is installed (2s grace period)
+  // On mount: 500ms grace period before first shield check
+  // Extensions sometimes inject after the component mounts
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (typeof window !== 'undefined' && !window.shield && state === 'IDLE') {
-        // Don't auto-set NOT_INSTALLED — only set it when user clicks connect
-      }
-    }, 2000)
+      // Grace period elapsed — extension should be injected by now
+      // NOT_INSTALLED state is only set when user clicks connect
+    }, 500)
     return () => clearTimeout(timer)
-  }, [state])
+  }, [])
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -97,14 +97,21 @@ export function useShieldWallet(): ShieldWallet {
     attemptRef.current = 0
 
     try {
-      await window.shield.connect()
-      // connect() resolved — now poll with backoff, do NOT read publicKey here
-      setState('POLLING')
-      pollPublicKey()
-    } catch (err) {
-      setState('ERROR')
-      setErrorMessage(err instanceof Error ? err.message : 'Connection failed')
+      await Promise.race([
+        window.shield.connect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 10000)
+        ),
+      ])
+    } catch (e) {
+      // CRITICAL: Do NOT set ERROR state here.
+      // Shield Wallet throws "Invalid connect payload" but IS actually connected.
+      // This is a bug in the extension, not a real failure.
+      // Always proceed to POLLING regardless of the throw.
     }
+    // Always move to POLLING after connect() — whether it threw or not
+    setState('POLLING')
+    pollPublicKey()
   }, [pollPublicKey])
 
   const disconnect = useCallback(() => {
