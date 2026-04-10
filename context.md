@@ -1195,3 +1195,85 @@ OPEN QUESTIONS (answer before Phase C)
 6. What does the proof monitor bot watch for exactly?
 7. Does veritaszk-mcp currently query testnet or mock data?
 8. Is there any Supabase or database currently in use?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE D RESULTS — April 9, 2026 (Session 2)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STATUS: COMPLETE (green light from Chat 3)
+
+FRONTEND LIVE AT: https://veritaszk.vercel.app
+
+DESIGN SYSTEM:
+  Aesthetic: "Engraved Vault" — cold precision, financial instrument
+  Base: #08080d | Surface: #0f0f18 | Elevated: #161623
+  Accent: #4fffb0 (cold surgical mint)
+  Status: Active #4fffb0 | Expiring #e5ff4f | Expired #ff4455
+  Fonts: Instrument Serif (display), Figtree (body), JetBrains Mono (mono)
+
+PAGES BUILT (all returning 200):
+  / — Homepage: animated hero (ZKFieldAnimation 320-particle hex collapse),
+      live stats, comparison table, tier system, activity feed,
+      SDK ecosystem, Run Demo Proof inline (5-second simulation),
+      trust badges including No Off-Chain Keys
+  /organization — Shield Wallet 7-state machine (connect error known,
+      fix deferred to Phase Alpha), multi-step stepper, 4-field asset
+      bundle, demo mode, certificate PNG with QR code, revoke modal
+      (#ff4455 confirm), watchProof SDK integration
+  /verifier — Zero-wallet search, proof result card, regulatory mapping,
+      Confidential verifier identity (with explanation), embeddable badge,
+      proof history
+  /public — Live ledger, Expiring Soon section, filters, block ticker,
+      useDemoSeed fires on load
+  /vision — FTX timeline (exact dates/amounts), Szabo lineage,
+      animated data flow diagram, regulatory alignment table, roadmap
+  /docs — Animated CPI architecture diagram (SVG+Framer Motion, node
+      pulses, connection flows, CPI note preserved), API reference,
+      SDK/MCP/CLI docs, live API status indicator
+  /enterprise — Compliance workflow comparison, tier mapping table,
+      integration options, contact CTA
+
+SHIELD WALLET:
+  7-state machine: IDLE/CONNECTING/POLLING/CONNECTED/ERROR/NOT_INSTALLED/DEMO_MODE
+  Exponential backoff: 200→400→800→1600→3200ms
+  Fix implemented: ignore-and-poll pattern
+  Known issue: "Invalid connect payload" still appearing in some cases
+  Status: DEFERRED to Phase Alpha for final fix
+
+ASSETS CREATED:
+  frontend/public/logo.svg
+  frontend/public/logo.png (512×512+)
+  frontend/public/favicon.ico
+  frontend/public/apple-touch-icon.png
+
+TEXT:
+  All "on-chain" and "on chain" replaced with "onchain" throughout
+  including Szabo quote and vision page
+
+LAST GIT COMMIT: b0c8f8d — Vinay <vinay11123sharma@gmail.com>
+
+COMPETITIVE ANALYSIS (from Claude Code — internal only):
+  Estimated score: 35-37 / 40
+  Privacy: 16/16 (full marks) — no financial data onchain, Szabo lineage,
+    Basel III/Solvency II/MiCA alignment, verifier identity private
+  Tech: 8/8 — 4 programs, CPI, true chain indexer, 3 npm packages
+  UX: 7/8 — zero-wallet verifier, demo mode, certificate, inline demo
+  Practicality: 4/4 — regulatory framework citations, enterprise page
+  Novelty: 4/4 — only ZK solvency protocol in 5 waves, Szabo 1993
+  1st place probability: 65%
+  Top 3 probability: 92%
+  Biggest risk: No real production transaction from a named organization
+
+PHASE ALPHA REMAINING (before Phase E):
+  - Shield Wallet final fix (Invalid connect payload resolution)
+  - One real Aleo testnet prove_threshold TX from named org
+  - Proof history timeline on /verifier
+
+NEXT: Phase Alpha → Phase E (README, submission, demo video)
+  Phase E priority order (highest ROI):
+  1. README.md (2h, +2.5 pts)
+  2. Demo video 5min (3h, +1.5 pts)
+  3. Real testnet TX from named org (4h, +1.5 pts)
+  4. Submission write-up on AKINDO platform
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
