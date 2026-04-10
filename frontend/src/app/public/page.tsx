@@ -46,7 +46,11 @@ export default function PublicPage() {
       if (proofsData.status === 'fulfilled') {
         const raw = proofsData.value ?? []
         const normalized = raw.length > 0
-          ? raw.map(normalizeProof)
+          ? raw.map(r => {
+              // Enrich Railway entries with DEMO_ORGS metadata when orgName is missing
+              const demo = DEMO_ORGS.find(d => d.commitment === r.commitment)
+              return normalizeProof(demo ? { ...demo, ...r, orgName: r.orgName || demo.orgName } : r)
+            })
           : DEMO_ORGS.map(d => ({
               ...d,
               issuedAt: new Date(Date.now() - Math.random() * 86400000 * 2).toISOString(),

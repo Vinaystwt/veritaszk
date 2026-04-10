@@ -1,7 +1,7 @@
 {
   "name": "veritaszk-sdk",
-  "version": "0.3.0",
-  "description": "TypeScript SDK for VeritasZK — query zero-knowledge solvency proofs on Aleo. Verify that organizations prove assets exceed liabilities without any private financial data being revealed. Includes React hooks, batch verification, and webhook support.",
+  "version": "0.3.1",
+  "description": "TypeScript SDK for VeritasZK zero-knowledge solvency proofs on Aleo. Batch verification, live proof watching, and expiry checking.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -16,13 +16,12 @@
   "keywords": [
     "aleo",
     "zero-knowledge",
-    "zk",
     "solvency",
-    "proof-of-reserves",
+    "zk-proof",
     "privacy",
     "blockchain",
-    "leo",
-    "veritaszk"
+    "compliance",
+    "basel-iii"
   ],
   "author": "Vinay Sharma",
   "license": "MIT",

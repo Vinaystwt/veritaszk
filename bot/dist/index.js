@@ -183,16 +183,24 @@ app.get('/api/stats', (_req, res) => {
 });
 // POST /api/proofs/register
 app.post('/api/proofs/register', (req, res) => {
-    const { commitment } = req.body;
+    const { commitment, orgName } = req.body;
     if (!commitment)
         return res.status(400).json({ error: 'commitment required' });
     const exists = cache.find(e => e.commitment === commitment);
-    if (exists)
+    if (exists) {
+        // Update orgName if provided and missing
+        if (orgName && !exists.orgName) {
+            exists.orgName = orgName;
+            exists.status.orgName = orgName;
+        }
         return res.json({ added: false, reason: 'already tracked' });
+    }
     cache.push({
         commitment,
+        orgName: orgName ?? undefined,
         status: {
             commitment,
+            orgName: orgName ?? undefined,
             isSolvent: false,
             proofStatus: 0,
             timestamp: 0,
@@ -202,7 +210,7 @@ app.post('/api/proofs/register', (req, res) => {
             tier: 0,
         },
     });
-    console.log(`[${new Date().toISOString()}] Registered new commitment: ${commitment.slice(0, 16)}...`);
+    console.log(`[${new Date().toISOString()}] Registered: ${orgName ?? commitment.slice(0, 16)}...`);
     res.json({ added: true });
 });
 // ─── Start ───────────────────────────────────────────────────────────
@@ -212,8 +220,10 @@ app.listen(PORT, () => {
 // Seed with deploy wallet for initial monitoring
 cache.push({
     commitment: 'aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00',
+    orgName: 'VeritasZK Protocol',
     status: {
         commitment: 'aleo1cdmu479q6duu327wgm3vnphqtq2n4q4vcvp66f5742gv5f8f9qxq0w9r00',
+        orgName: 'VeritasZK Protocol',
         isSolvent: false,
         proofStatus: 0,
         timestamp: 0,

@@ -694,7 +694,7 @@ export default function HomePage() {
           </div>
 
           {/* Floating proof card — hidden on mobile, shown on lg+ */}
-          <div className="hidden lg:block absolute right-6 top-1/2 -translate-y-1/2">
+          <div className="hidden lg:block absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
           <motion.div
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}

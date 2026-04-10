@@ -630,7 +630,18 @@ function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }
 
 // ─── Wallet gate ─────────────────────────────────────────────────────────────
 function WalletGate({ wallet }: { wallet: ReturnType<typeof useShieldWallet> }) {
-  const { state, connect, enterDemoMode, errorMessage } = wallet
+  const { state, connect, connectWithAddress, enterDemoMode, errorMessage } = wallet
+  const [manualAddr, setManualAddr] = useState('')
+  const [manualErr, setManualErr] = useState('')
+
+  const handleManualConnect = () => {
+    if (!manualAddr.trim().startsWith('aleo1')) {
+      setManualErr('Address must start with aleo1')
+      return
+    }
+    setManualErr('')
+    connectWithAddress(manualAddr.trim())
+  }
 
   const stateConfig = {
     IDLE:          { msg: '', sub: '' },
@@ -696,9 +707,32 @@ function WalletGate({ wallet }: { wallet: ReturnType<typeof useShieldWallet> }) 
             </a>
           )}
           {state === 'ERROR' && (
-            <button onClick={connect} className="w-full py-3.5 rounded-lg font-body font-semibold" style={{ background: 'rgba(255,68,85,0.10)', color: '#ff4455', border: '1px solid rgba(255,68,85,0.20)', cursor: 'pointer' }}>
-              Retry Connection
-            </button>
+            <>
+              <button onClick={connect} className="w-full py-3.5 rounded-lg font-body font-semibold" style={{ background: 'rgba(255,68,85,0.10)', color: '#ff4455', border: '1px solid rgba(255,68,85,0.20)', cursor: 'pointer' }}>
+                Retry Connection
+              </button>
+              {/* Manual address fallback — for browsers where Shield Wallet extension doesn't surface publicKey */}
+              <div className="pt-1">
+                <p className="font-mono text-xs mb-2 text-left" style={{ color: '#44444f' }}>Or paste your Aleo address manually:</p>
+                <input
+                  type="text"
+                  value={manualAddr}
+                  onChange={e => { setManualAddr(e.target.value); setManualErr('') }}
+                  placeholder="aleo1..."
+                  className="w-full px-3 py-2.5 rounded-lg font-mono text-xs outline-none mb-2"
+                  style={{ background: '#0f0f18', border: `1px solid ${manualErr ? 'rgba(255,68,85,0.35)' : 'rgba(255,255,255,0.10)'}`, color: '#f4f4f0' }}
+                />
+                {manualErr && <p className="font-mono text-xs mb-2" style={{ color: '#ff4455' }}>{manualErr}</p>}
+                <button
+                  onClick={handleManualConnect}
+                  disabled={!manualAddr.trim()}
+                  className="w-full py-2.5 rounded-lg font-body text-sm font-medium"
+                  style={{ background: manualAddr.trim() ? 'rgba(79,255,176,0.08)' : 'rgba(255,255,255,0.03)', color: manualAddr.trim() ? '#4fffb0' : '#44444f', border: '1px solid rgba(79,255,176,0.15)', cursor: manualAddr.trim() ? 'pointer' : 'default' }}
+                >
+                  Connect with this address →
+                </button>
+              </div>
+            </>
           )}
 
           {(state === 'IDLE' || state === 'ERROR' || state === 'NOT_INSTALLED') && (
