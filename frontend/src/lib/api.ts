@@ -123,7 +123,10 @@ export async function seedDemoOrgsIfEmpty(): Promise<void> {
 
 /** Normalize raw API records — fills missing fields with defaults */
 export function normalizeProof(raw: Partial<ProofRecord>): ProofRecord {
-  const tier = (raw.tier ?? 1) as 1 | 2 | 3 | 4
+  // Railway returns tier:0 for registered-but-unindexed commitments.
+  // ?? only catches null/undefined — not falsy 0. Clamp to valid 1-4 range.
+  const rawTier = Number(raw.tier)
+  const tier = ([1, 2, 3, 4].includes(rawTier) ? rawTier : 1) as 1 | 2 | 3 | 4
   const tierNames: Record<number, string> = { 1: 'Standard', 2: 'Verified', 3: 'Strong', 4: 'Institutional' }
   return {
     commitment: raw.commitment ?? '',

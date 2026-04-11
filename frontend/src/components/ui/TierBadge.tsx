@@ -23,7 +23,7 @@ const TIER_BG: Record<number, string> = {
 }
 
 export function TierBadge({ tier, size = 'md', showName = true, showRatio = false }: TierBadgeProps) {
-  const info = TIERS.find(t => t.tier === tier)!
+  const info = TIERS.find(t => t.tier === tier) ?? TIERS[0]
   const color = TIER_COLORS[tier]
   const bg = TIER_BG[tier]
 
