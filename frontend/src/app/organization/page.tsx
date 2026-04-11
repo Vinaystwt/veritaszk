@@ -53,15 +53,20 @@ function Step1({ wallet, isDemo, onComplete }: {
         const demoTx = `at1demo${Math.random().toString(36).slice(2, 16)}`
         onComplete({ orgName: orgName.trim(), commitment: demoCommitment, txHash: demoTx })
       } else {
-        // Real: call register_org via Shield Wallet
-        const tx = await window.shield?.requestTransaction?.({
+        // Real: call register_org via Shield Wallet executeTransaction
+        const delegateAddr = delegate || wallet.publicKey || ''
+        const txResult = await (window.shield as any).executeTransaction({
           programId: 'veritaszk_registry.aleo',
           functionName: 'register_org',
-          inputs: [orgName.trim(), delegate || wallet.publicKey, salt],
-          fee: 100000,
+          inputs: [
+            `"${orgName.trim()}"`,
+            delegateAddr,
+            `${BigInt('0x' + salt.replace(/[^0-9a-fA-F]/g, '').slice(0, 30) || '1')}u128`,
+          ],
+          fee: 0.1,
         })
-        const commitment = `org_${btoa(orgName).slice(0, 12)}_${salt.slice(0, 8)}`
-        const txHash = tx?.transactionId ?? ''
+        const txHash = txResult?.transactionId || txResult?.id || txResult?.txId || ''
+        const commitment = `org_${btoa(orgName.trim()).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}_${salt.slice(0, 8)}`
         await registerProof({ commitment, orgName: orgName.trim(), tier: 1, coverageRatio: 1.0 })
         onComplete({ orgName: orgName.trim(), commitment, txHash })
       }
@@ -186,15 +191,25 @@ function Step2({ orgName, isDemo, onComplete }: {
         onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks })
       } else {
         const assetBundle = { native_credits: Math.floor(parseFloat(assets.native) || 0), stablecoin_usd: Math.floor(parseFloat(assets.stablecoin) || 0), btc_equivalent: Math.floor(parseFloat(assets.btc) || 0), other_assets: Math.floor(parseFloat(assets.other) || 0) }
-        const tx = await window.shield?.requestTransaction?.({
+        const nonce = Math.floor(Math.random() * 1_000_000_000)
+        const orgCommitment = Date.now()
+        const txResult = await (window.shield as any).executeTransaction({
           programId: 'veritaszk_threshold.aleo',
           functionName: 'prove_threshold',
-          inputs: [JSON.stringify(assetBundle), Math.floor(totalLiab).toString(), blocks.toString()],
-          fee: 250000,
+          inputs: [
+            `{native_credits: ${assetBundle.native_credits}u64, stablecoin_usd: ${assetBundle.stablecoin_usd}u64, btc_equivalent: ${assetBundle.btc_equivalent}u64, other_assets: ${assetBundle.other_assets}u64}`,
+            `${Math.floor(totalLiab)}u64`,
+            `${orgCommitment}field`,
+            `${nonce}field`,
+            `${tierResult.tier}u8`,
+          ],
+          fee: 0.5,
         })
-        const commitment = `thr_${Math.random().toString(16).slice(2, 18)}`
+        const txHash = txResult?.transactionId || txResult?.id || txResult?.txId || ''
+        if (!txHash) throw new Error('Transaction submitted but no transaction ID returned')
+        const commitment = `thr_${txHash.slice(0, 12)}`
         await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
-        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash: tx?.transactionId ?? '', expiryBlock: baseBlock + blocks })
+        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks })
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transaction failed')
@@ -412,7 +427,8 @@ function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }
   const [revokeState, setRevokeState] = useState<'idle' | 'confirming' | 'revoking' | 'revoked'>('idle')
   const [qrDataUrl, setQrDataUrl] = useState('')
   const tierInfo = TIERS.find(t => t.tier === tier)!
-  const explorer = PROGRAMS.find(p => p.id === 'veritaszk_threshold.aleo')?.explorerUrl ?? ''
+  const explorerBase = PROGRAMS.find(p => p.id === 'veritaszk_threshold.aleo')?.explorerUrl?.replace('/program/veritaszk_threshold.aleo', '') ?? 'https://testnet.explorer.provable.com'
+  const explorer = txHash && !isDemo ? `${explorerBase}/transaction/${txHash}` : (PROGRAMS.find(p => p.id === 'veritaszk_threshold.aleo')?.explorerUrl ?? '')
 
   // Generate QR code linking to the verifier page for this commitment
   useEffect(() => {
@@ -446,12 +462,14 @@ function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }
       if (isDemo) {
         await new Promise(r => setTimeout(r, 1600))
       } else {
-        await window.shield?.requestTransaction?.({
+        const revokeResult = await (window.shield as any).executeTransaction({
           programId: 'veritaszk_core.aleo',
           functionName: 'revoke_proof_record',
           inputs: [commitment],
-          fee: 100000,
+          fee: 0.1,
         })
+        const revokeTxHash = revokeResult?.transactionId || revokeResult?.id || revokeResult?.txId || ''
+        if (!revokeTxHash) throw new Error('Revoke transaction returned no transaction ID')
       }
       setRevokeState('revoked')
     } catch {
