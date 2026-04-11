@@ -1045,7 +1045,20 @@ function OrganizationContent() {
 
 export default function OrganizationPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#08080d' }} />}>
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        background: '#08080d',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#888896',
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: '13px',
+      }}>
+        Loading...
+      </div>
+    }>
       <OrganizationContent />
     </Suspense>
   )
