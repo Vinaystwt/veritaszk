@@ -190,8 +190,15 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
         // liabilities must be >= 1 to avoid division-by-zero in tier ratio assertions
         const liabs = Math.max(1, Math.floor(totalLiab))
         const calculatedTier = tierResult.tier
-        const nonce = Math.floor(Math.random() * 999_999_999_999_999) + 1
-        const orgCommitmentField = `${Date.now()}${Math.floor(Math.random() * 1_000_000) + 1}`
+        // SAFE field generation — must stay within JS safe integer range (< 2^53).
+        // Date.now() is 13 digits; concatenating with random digits produces 19 digits
+        // which overflows MAX_SAFE_INTEGER and corrupts .toString() with Unicode superscripts.
+        // Fix: clamp to 15 digits max using modulo.
+        const orgCommitmentField = (Date.now() % 999_999_999_999_999) + 1
+        const proofNonceField = Math.floor(Math.random() * 999_999_999_998) + 1
+
+        console.log('orgCommitmentField:', orgCommitmentField, 'safe:', Number.isSafeInteger(orgCommitmentField))
+        console.log('proofNonceField:', proofNonceField, 'safe:', Number.isSafeInteger(proofNonceField))
 
         const params = {
           programId: 'veritaszk_threshold.aleo',
@@ -201,10 +208,10 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
             `{native_credits: ${nc}u64, stablecoin_usd: ${su}u64, btc_equivalent: ${btc}u64, other_assets: ${other}u64}`,
             // Input 2: liabilities u64 — must be positive
             `${liabs}u64`,
-            // Input 3: org_commitment field — positive integer
+            // Input 3: org_commitment field — safe integer, max 15 digits
             `${orgCommitmentField}field`,
-            // Input 4: proof_nonce field — positive integer
-            `${nonce}field`,
+            // Input 4: proof_nonce field — safe integer, max 12 digits
+            `${proofNonceField}field`,
             // Input 5: tier_target u8 (public)
             `${calculatedTier}u8`,
           ],
@@ -221,7 +228,7 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
         if (!txHash) throw new Error('Transaction submitted but no transaction ID returned')
         const commitment = `thr_${txHash.slice(0, 12)}`
         await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
-        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks, orgCommitmentField })
+        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks, orgCommitmentField: String(orgCommitmentField) })
       }
     } catch (e: any) {
       // Fix C — show the actual Shield Wallet error, not a generic message
