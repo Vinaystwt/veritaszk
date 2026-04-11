@@ -282,8 +282,30 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
 
         console.log('Final TX hash used:', finalTxHash)
 
-        const commitment = `thr_${finalTxHash.slice(0, 12)}`
-        await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
+        // Use real at1 hash prefix when available, otherwise fall back to orgCommitmentField
+        const commitment = finalTxHash?.startsWith('at1')
+          ? `thr_${finalTxHash.slice(0, 16)}`
+          : `thr_${orgCommitmentField}`
+
+        // Register with indexer AFTER we have the final TX hash
+        try {
+          await fetch('https://veritaszk-production.up.railway.app/api/proofs/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              commitment,
+              orgName: orgName || 'Unknown Org',
+              tier: calculatedTier,
+              txHash: finalTxHash,
+              status: 'active',
+              coverageRatio: tierResult.ratio,
+            }),
+          })
+        } catch {
+          // Indexer registration failure is non-fatal — proof is valid onchain regardless
+          console.warn('Indexer registration failed')
+        }
+
         onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash: finalTxHash, expiryBlock: baseBlock + blocks, orgCommitmentField: String(orgCommitmentField) })
       }
     } catch (e: any) {

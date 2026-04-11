@@ -46,7 +46,7 @@ function ExpiryCountdown({ expiresAt }: { expiresAt?: string }) {
 }
 
 function ProofCard({ proof, onVerify }: { proof: ProofRecord; onVerify: () => void }) {
-  const tierInfo = TIERS.find(t => t.tier === proof.tier)!
+  const tierInfo = TIERS.find(t => t.tier === proof.tier) ?? TIERS[0]
   const [verifying, setVerifying] = useState(false)
   const [verified, setVerified] = useState(false)
   const [verifiedBlock, setVerifiedBlock] = useState<number | null>(null)
@@ -226,19 +226,24 @@ function VerifierContent() {
     setResult(null)
     setShowSuggestions(false)
     try {
-      // Try API first
       let proof: ProofRecord | null = null
       try {
         const raw = await getProof(q.trim())
-        proof = normalizeProof(raw)
+        // Railway returns null for unknown commitments — guard before normalizing
+        if (raw != null) proof = normalizeProof(raw)
       } catch {
-        // Fall back to local demo orgs
+        // 404 or network error — fall through to local demo orgs
+      }
+      // Fall back to local demo orgs if API returned nothing
+      if (!proof) {
         const local = [...allOrgs, ...DEMO_ORGS.map(d => ({ ...d }) as ProofRecord)]
           .find(p => p.commitment === q.trim() || p.orgName.toLowerCase() === q.trim().toLowerCase())
         if (local) proof = normalizeProof(local)
       }
       if (proof) setResult(proof)
       else setError(`No proof found for: "${q.trim()}"`)
+    } catch (outerErr: any) {
+      setError(`Search failed: ${outerErr?.message ?? 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
