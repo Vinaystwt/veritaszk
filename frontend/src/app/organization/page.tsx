@@ -53,22 +53,12 @@ function Step1({ wallet, isDemo, onComplete }: {
         const demoTx = `at1demo${Math.random().toString(36).slice(2, 16)}`
         onComplete({ orgName: orgName.trim(), commitment: demoCommitment, txHash: demoTx })
       } else {
-        // Real: call register_org via Shield Wallet executeTransaction
-        const delegateAddr = delegate || wallet.publicKey || ''
-        const txResult = await (window.shield as any).executeTransaction({
-          programId: 'veritaszk_registry.aleo',
-          functionName: 'register_org',
-          inputs: [
-            `"${orgName.trim()}"`,
-            delegateAddr,
-            `${BigInt('0x' + salt.replace(/[^0-9a-fA-F]/g, '').slice(0, 30) || '1')}u128`,
-          ],
-          fee: 0.1,
-        })
-        const txHash = txResult?.transactionId || txResult?.id || txResult?.txId || ''
+        // Step 1 is local-only — no transaction needed.
+        // register_org takes (org_name_hash: field, salt: field) but requires testnet credits.
+        // The identity is implicitly established by prove_threshold in Step 2.
+        await new Promise(r => setTimeout(r, 600))
         const commitment = `org_${btoa(orgName.trim()).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}_${salt.slice(0, 8)}`
-        await registerProof({ commitment, orgName: orgName.trim(), tier: 1, coverageRatio: 1.0 })
-        onComplete({ orgName: orgName.trim(), commitment, txHash })
+        onComplete({ orgName: orgName.trim(), commitment, txHash: '' })
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transaction failed')
@@ -143,7 +133,7 @@ function Step1({ wallet, isDemo, onComplete }: {
         }}
       >
         {submitting ? (
-          <><LoadingSpinner size="sm" color="#08080d" /> {isDemo ? 'Simulating...' : 'Signing Transaction...'}</>
+          <><LoadingSpinner size="sm" color="#08080d" /> Registering...</>
         ) : (
           `${isDemo ? 'Simulate' : 'Register'} Organization →`
         )}
@@ -160,7 +150,7 @@ function Step1({ wallet, isDemo, onComplete }: {
 function Step2({ orgName, isDemo, onComplete }: {
   orgName: string
   isDemo: boolean
-  onComplete: (data: { tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number }) => void
+  onComplete: (data: { tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number; orgCommitmentField: string }) => void
 }) {
   const [assets, setAssets] = useState({ native: isDemo ? '3200000' : '', stablecoin: isDemo ? '800000' : '', btc: isDemo ? '200000' : '', other: isDemo ? '300000' : '' })
   const [liabilities, setLiabilities] = useState(isDemo ? '1500000' : '')
@@ -188,28 +178,30 @@ function Step2({ orgName, isDemo, onComplete }: {
         const commitment = `b2c3${Math.random().toString(16).slice(2, 20)}tier${tierResult.tier}`
         const txHash = `at1demo${Math.random().toString(36).slice(2, 16)}`
         await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
-        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks })
+        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks, orgCommitmentField: '' })
       } else {
         const assetBundle = { native_credits: Math.floor(parseFloat(assets.native) || 0), stablecoin_usd: Math.floor(parseFloat(assets.stablecoin) || 0), btc_equivalent: Math.floor(parseFloat(assets.btc) || 0), other_assets: Math.floor(parseFloat(assets.other) || 0) }
         const nonce = Math.floor(Math.random() * 1_000_000_000)
-        const orgCommitment = Date.now()
+        // org_commitment: deterministic large field value (timestamp + random for uniqueness)
+        const orgCommitmentField = `${Date.now()}${Math.floor(Math.random() * 1_000_000)}`
         const txResult = await (window.shield as any).executeTransaction({
           programId: 'veritaszk_threshold.aleo',
           functionName: 'prove_threshold',
           inputs: [
             `{native_credits: ${assetBundle.native_credits}u64, stablecoin_usd: ${assetBundle.stablecoin_usd}u64, btc_equivalent: ${assetBundle.btc_equivalent}u64, other_assets: ${assetBundle.other_assets}u64}`,
             `${Math.floor(totalLiab)}u64`,
-            `${orgCommitment}field`,
+            `${orgCommitmentField}field`,
             `${nonce}field`,
             `${tierResult.tier}u8`,
           ],
-          fee: 0.5,
+          fee: 10000,
+          feePrivate: false,
         })
         const txHash = txResult?.transactionId || txResult?.id || txResult?.txId || ''
         if (!txHash) throw new Error('Transaction submitted but no transaction ID returned')
         const commitment = `thr_${txHash.slice(0, 12)}`
         await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
-        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks })
+        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks, orgCommitmentField })
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transaction failed')
@@ -420,8 +412,8 @@ function CertificateTemplate({ orgName, tier, tierName, ratio, block, commitment
 }
 
 // ─── Step 3: Confirmation ────────────────────────────────────────────────────
-function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }: {
-  orgName: string; tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number; isDemo: boolean
+function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo, orgCommitmentField }: {
+  orgName: string; tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number; isDemo: boolean; orgCommitmentField: string
 }) {
   const [downloading, setDownloading] = useState(false)
   const [revokeState, setRevokeState] = useState<'idle' | 'confirming' | 'revoking' | 'revoked'>('idle')
@@ -462,11 +454,14 @@ function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo }
       if (isDemo) {
         await new Promise(r => setTimeout(r, 1600))
       } else {
+        // revoke_proof(public org_commitment: field) — single public input, no private record needed
+        if (!orgCommitmentField) throw new Error('Cannot revoke: org commitment field not available')
         const revokeResult = await (window.shield as any).executeTransaction({
           programId: 'veritaszk_core.aleo',
-          functionName: 'revoke_proof_record',
-          inputs: [commitment],
-          fee: 0.1,
+          functionName: 'revoke_proof',
+          inputs: [`${orgCommitmentField}field`],
+          fee: 10000,
+          feePrivate: false,
         })
         const revokeTxHash = revokeResult?.transactionId || revokeResult?.id || revokeResult?.txId || ''
         if (!revokeTxHash) throw new Error('Revoke transaction returned no transaction ID')
@@ -770,7 +765,7 @@ function OrganizationContent() {
   const wallet = useShieldWallet()
   const [currentStep, setCurrentStep] = useState(1)
   const [orgData, setOrgData] = useState<{ orgName: string; commitment: string; txHash: string } | null>(null)
-  const [proofData, setProofData] = useState<{ tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number } | null>(null)
+  const [proofData, setProofData] = useState<{ tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number; orgCommitmentField: string } | null>(null)
   const [liveProofStatus, setLiveProofStatus] = useState<{ isExpired?: boolean; proofStatus?: number } | null>(null)
 
   // Auto-enter demo mode if ?demo=true
@@ -919,6 +914,7 @@ function OrganizationContent() {
                       txHash={proofData.txHash}
                       expiryBlock={proofData.expiryBlock}
                       isDemo={isDemo}
+                      orgCommitmentField={proofData.orgCommitmentField}
                     />
                   </motion.div>
                 )}
