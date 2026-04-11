@@ -73,15 +73,15 @@ export function useShieldWallet(): ShieldWallet {
     try {
       // Root cause fix: connect() requires (network, decryptPermission, programs)
       // and returns {address: "aleo1..."} directly as the return value.
-      // 30s timeout gives the user time to unlock Shield Wallet if it is locked —
-      // Shield should show its unlock popup and resolve once the password is entered.
+      // 60s timeout gives the user time to notice Shield Wallet is locked,
+      // open the extension, enter their password, and have it resolve.
       const result = await Promise.race([
         (window.shield as any).connect(
           'testnet',
           'onChainHistory',
           PROGRAMS
         ),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 60000)),
       ])
 
       // Primary: address comes back as return value

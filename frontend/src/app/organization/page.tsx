@@ -197,27 +197,29 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
           // Balance check failed — proceed anyway, Shield will reject if insufficient
         }
 
-        // Fix B — build params as a named variable so we can log and inspect
-        const nativeCredits = Math.floor(parseFloat(assets.native) || 0)
-        const stablecoinUsd = Math.floor(parseFloat(assets.stablecoin) || 0)
-        const btcEquivalent = Math.floor(parseFloat(assets.btc) || 0)
-        const otherAssets = Math.floor(parseFloat(assets.other) || 0)
-        const totalLiabilities = Math.floor(totalLiab)
+        // Fix B — build params with guaranteed positive integers for all Leo inputs
+        // native_credits must be >= 1 (u64 minimum for valid AssetBundle)
+        const nc = Math.max(1, Math.floor(Number(assets.native) || 1))
+        const su = Math.max(0, Math.floor(Number(assets.stablecoin) || 0))
+        const btc = Math.max(0, Math.floor(Number(assets.btc) || 0))
+        const other = Math.max(0, Math.floor(Number(assets.other) || 0))
+        // liabilities must be >= 1 to avoid division-by-zero in tier ratio assertions
+        const liabs = Math.max(1, Math.floor(totalLiab))
         const calculatedTier = tierResult.tier
-        const nonce = Math.floor(Math.random() * 999_999_999_999_999)
-        const orgCommitmentField = `${Date.now()}${Math.floor(Math.random() * 1_000_000)}`
+        const nonce = Math.floor(Math.random() * 999_999_999_999_999) + 1
+        const orgCommitmentField = `${Date.now()}${Math.floor(Math.random() * 1_000_000) + 1}`
 
         const params = {
           programId: 'veritaszk_threshold.aleo',
           functionName: 'prove_threshold',
           inputs: [
             // Input 1: AssetBundle struct — Leo struct literal syntax, no quotes on keys
-            `{native_credits: ${nativeCredits}u64, stablecoin_usd: ${stablecoinUsd}u64, btc_equivalent: ${btcEquivalent}u64, other_assets: ${otherAssets}u64}`,
-            // Input 2: liabilities u64
-            `${totalLiabilities}u64`,
-            // Input 3: org_commitment field
+            `{native_credits: ${nc}u64, stablecoin_usd: ${su}u64, btc_equivalent: ${btc}u64, other_assets: ${other}u64}`,
+            // Input 2: liabilities u64 — must be positive
+            `${liabs}u64`,
+            // Input 3: org_commitment field — positive integer
             `${orgCommitmentField}field`,
-            // Input 4: proof_nonce field
+            // Input 4: proof_nonce field — positive integer
             `${nonce}field`,
             // Input 5: tier_target u8 (public)
             `${calculatedTier}u8`,
@@ -695,7 +697,7 @@ function WalletGate({ wallet }: { wallet: ReturnType<typeof useShieldWallet> }) 
 
   const stateConfig = {
     IDLE:          { msg: '', sub: '' },
-    CONNECTING:    { msg: 'Opening Shield Wallet...', sub: 'If your wallet is locked, enter your password in the Shield popup. Waiting up to 30 seconds…' },
+    CONNECTING:    { msg: 'Opening Shield Wallet...', sub: 'If your wallet is locked, open the Shield extension and enter your password. Waiting up to 60 seconds…' },
     ERROR:         { msg: 'Connection failed', sub: errorMessage ?? 'Please try again.' },
     NOT_INSTALLED: { msg: 'Shield Wallet not detected', sub: 'Install the Shield Wallet extension to connect.' },
     CONNECTED:     { msg: '', sub: '' },
