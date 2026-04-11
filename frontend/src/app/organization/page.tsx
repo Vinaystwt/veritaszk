@@ -158,6 +158,7 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
   const [validity, setValidity] = useState(30)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [txStatus, setTxStatus] = useState('')
 
   const totalAssets = Object.values(assets).reduce((s, v) => s + (parseFloat(v) || 0), 0)
   const totalLiab = parseFloat(liabilities) || 0
@@ -226,18 +227,70 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
         console.log(JSON.stringify(params, null, 2))
         console.log('============================================')
 
-        const txResult = await (window.shield as any).executeTransaction(params)
-        const txHash = txResult?.transactionId || txResult?.id || txResult?.txId || ''
-        if (!txHash) throw new Error('Transaction submitted but no transaction ID returned')
-        const commitment = `thr_${txHash.slice(0, 12)}`
+        const result = await (window.shield as any).executeTransaction(params)
+
+        console.log('Shield raw result:', JSON.stringify(result))
+
+        // Get the pending transaction ID from Shield
+        const pendingId = result?.transactionId || result?.id ||
+                          (typeof result === 'string' ? result : null)
+
+        console.log('Pending ID from Shield:', pendingId)
+
+        if (!pendingId) throw new Error('Transaction submitted but no pending ID returned')
+
+        let finalTxHash = pendingId // fallback to pending ID if polling finds nothing
+
+        // Poll transactionStatus for the real Aleo at1... transaction ID
+        setTxStatus('Broadcasting to Aleo testnet...')
+
+        const maxAttempts = 40 // 40 × 3s = 2 minutes
+        for (let i = 0; i < maxAttempts; i++) {
+          await new Promise(r => setTimeout(r, 3000))
+
+          try {
+            const statusResult = await (window.shield as any).transactionStatus(pendingId)
+            console.log(`Status poll ${i + 1}:`, JSON.stringify(statusResult))
+
+            const realTxId = statusResult?.transactionId ||
+                             statusResult?.id ||
+                             statusResult?.txId ||
+                             (typeof statusResult === 'string' ? statusResult : null)
+
+            console.log('Real TX ID candidate:', realTxId)
+
+            // Real Aleo TX IDs start with 'at1' and are 61+ chars
+            if (realTxId && realTxId.startsWith('at1') && realTxId.length >= 61) {
+              finalTxHash = realTxId
+              console.log('Got real Aleo TX ID:', finalTxHash)
+              break
+            }
+
+            // Check if status indicates failure
+            const status = statusResult?.status || statusResult?.state
+            console.log('Transaction status:', status)
+            if (status === 'failed' || status === 'rejected' || status === 'error') {
+              throw new Error(`Transaction failed with status: ${status}`)
+            }
+
+            setTxStatus(`Confirming on Aleo testnet... (${i + 1}/${maxAttempts})`)
+          } catch (pollErr: any) {
+            console.warn(`Status poll ${i + 1} failed:`, pollErr?.message)
+            // Individual poll failures are non-fatal — keep trying
+          }
+        }
+
+        console.log('Final TX hash used:', finalTxHash)
+
+        const commitment = `thr_${finalTxHash.slice(0, 12)}`
         await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
-        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks, orgCommitmentField: String(orgCommitmentField) })
+        onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash: finalTxHash, expiryBlock: baseBlock + blocks, orgCommitmentField: String(orgCommitmentField) })
       }
     } catch (e: any) {
-      // Fix C — show the actual Shield Wallet error, not a generic message
       const errorMsg = e?.message || e?.toString() || 'Transaction failed'
       console.error('executeTransaction full error:', e)
       setError(errorMsg)
+      setTxStatus('')
     } finally {
       setSubmitting(false)
     }
@@ -340,6 +393,12 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
       {error && (
         <p className="font-mono text-xs px-3 py-2 rounded" style={{ background: 'rgba(255,68,85,0.08)', color: '#ff4455', border: '1px solid rgba(255,68,85,0.15)' }}>
           {error}
+        </p>
+      )}
+
+      {txStatus && (
+        <p className="font-mono text-xs px-3 py-2 rounded" style={{ background: 'rgba(79,255,176,0.06)', color: '#4fffb0', border: '1px solid rgba(79,255,176,0.15)' }}>
+          {txStatus}
         </p>
       )}
 
