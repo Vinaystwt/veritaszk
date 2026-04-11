@@ -646,15 +646,14 @@ function WalletGate({ wallet }: { wallet: ReturnType<typeof useShieldWallet> }) 
   const stateConfig = {
     IDLE:          { msg: '', sub: '' },
     CONNECTING:    { msg: 'Opening Shield Wallet...', sub: 'Please approve the connection in your extension.' },
-    POLLING:       { msg: 'Waiting for wallet...', sub: 'Establishing secure connection with exponential backoff.' },
     ERROR:         { msg: 'Connection failed', sub: errorMessage ?? 'Please try again.' },
     NOT_INSTALLED: { msg: 'Shield Wallet not detected', sub: 'Install the Shield Wallet extension to connect.' },
     CONNECTED:     { msg: '', sub: '' },
     DEMO_MODE:     { msg: '', sub: '' },
   }
 
-  const cfg = stateConfig[state]
-  const isLoading = state === 'CONNECTING' || state === 'POLLING'
+  const cfg = stateConfig[state as keyof typeof stateConfig] ?? { msg: '', sub: '' }
+  const isLoading = state === 'CONNECTING'
   const showRetry = state === 'ERROR' || state === 'NOT_INSTALLED'
 
   return (

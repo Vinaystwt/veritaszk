@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react'
 export type WalletState =
   | 'IDLE'
   | 'CONNECTING'
-  | 'POLLING'
   | 'CONNECTED'
   | 'ERROR'
   | 'NOT_INSTALLED'
@@ -25,22 +24,32 @@ export interface ShieldWallet {
 declare global {
   interface Window {
     shield?: {
-      connect: () => Promise<void>
+      connect: (
+        network: string,
+        decryptPermission: string,
+        programs: string[]
+      ) => Promise<{ address: string }>
+      disconnect: () => Promise<void>
       on?: (event: string, handler: (data: any) => void) => void
       off?: (event: string, handler: (data: any) => void) => void
       emit?: (event: string, data: any) => void
-      eventEmitter?: {
-        on: (event: string, handler: (data: any) => void) => void
-        off: (event: string, handler: (data: any) => void) => void
-        emit: (event: string, data: any) => void
-      }
-      icon?: string
-      publicKey?: string
-      account?: { publicKey?: string; address?: string }
+      executeTransaction?: (params: any) => Promise<any>
+      signMessage?: (message: string) => Promise<any>
+      requestRecords?: (params: any) => Promise<any>
       requestTransaction?: (tx: unknown) => Promise<{ transactionId: string }>
+      eventEmitter?: any
+      icon?: string
     }
   }
 }
+
+const PROGRAMS = [
+  'veritaszk_registry.aleo',
+  'veritaszk_core.aleo',
+  'veritaszk_audit.aleo',
+  'veritaszk_threshold.aleo',
+  'credits.aleo',
+]
 
 export function useShieldWallet(): ShieldWallet {
   const [state, setState] = useState<WalletState>('IDLE')
@@ -61,113 +70,60 @@ export function useShieldWallet(): ShieldWallet {
     setState('CONNECTING')
     setErrorMessage(null)
 
-    // ── Set up event listeners BEFORE calling connect() ─────────────────────
-    // Shield Wallet is purely event-based — publicKey is never exposed as a property.
-    // Keys present: ['icon', 'eventEmitter', 'on', 'off', 'emit']
-    const possibleEvents = [
-      'accountChange',
-      'accountChanged',
-      'accountsChanged',
-      'connect',
-      'connected',
-      'ready',
-      'address',
-      'wallet_accountsChanged',
-      'change',
-    ]
+    try {
+      // Root cause fix: connect() requires (network, decryptPermission, programs)
+      // and returns {address: "aleo1..."} directly as the return value.
+      // Calling with no args throws "Invalid connect payload" and returns nothing.
+      const result = await (window.shield as any).connect(
+        'testnet',
+        'onChainHistory',
+        PROGRAMS
+      )
 
-    const addressPromise = new Promise<string>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('No account event received within 20s'))
-      }, 20000)
+      // Primary: address comes back as return value
+      const address =
+        result?.address ||
+        result?.publicKey ||
+        (typeof result === 'string' ? result : null)
 
-      const handler = (data: any) => {
-        const address =
-          data?.publicKey ||
-          data?.address ||
-          data?.account?.publicKey ||
-          data?.account?.address ||
-          (typeof data === 'string' && data.startsWith('aleo1') ? data : null) ||
-          data?.[0]?.publicKey ||
-          data?.[0]?.address ||
-          (Array.isArray(data) && typeof data[0] === 'string' ? data[0] : null)
-
-        if (address && address.startsWith('aleo1')) {
-          clearTimeout(timeout)
-          // Clean up all listeners
-          possibleEvents.forEach(evt => {
-            try { window.shield?.off?.(evt, handler) } catch {}
-            try { (window.shield as any)?.eventEmitter?.off(evt, handler) } catch {}
-          })
-          resolve(address)
-        }
+      if (address && address.startsWith('aleo1')) {
+        setPublicKey(address)
+        setState('CONNECTED')
+        return
       }
 
-      // Listen via window.shield.on
-      possibleEvents.forEach(evt => {
-        try { window.shield?.on?.(evt, handler) } catch {}
-      })
+      // Fallback: check prototype — _publicKey may be set after connect() returns
+      await new Promise(r => setTimeout(r, 300))
+      const proto = Object.getPrototypeOf(window.shield)
+      const protoKey = proto?._publicKey
+      if (protoKey && protoKey.startsWith('aleo1')) {
+        setPublicKey(protoKey)
+        setState('CONNECTED')
+        return
+      }
 
-      // Also listen on the eventEmitter directly
+      // No address found
+      setState('ERROR')
+      setErrorMessage(
+        'Shield Wallet connected but returned no address. Paste your Aleo address below, or use Demo Mode.'
+      )
+    } catch (e: any) {
+      console.error('[Shield] connect error:', e?.message ?? e)
+
+      // Even on throw, address may have been set on prototype before the error
       try {
-        const emitter = (window.shield as any).eventEmitter
-        if (emitter) {
-          possibleEvents.forEach(evt => {
-            try { emitter.on(evt, handler) } catch {}
-          })
+        const proto = Object.getPrototypeOf(window.shield)
+        const protoKey = proto?._publicKey
+        if (protoKey && protoKey.startsWith('aleo1')) {
+          setPublicKey(protoKey)
+          setState('CONNECTED')
+          return
         }
       } catch {}
 
-      // Also listen on window itself for wallet broadcast events
-      const windowHandler = (e: any) => {
-        const data = e?.detail || e?.data
-        if (!data) return
-        const address =
-          data?.publicKey ||
-          data?.address ||
-          (typeof data === 'string' && data.startsWith('aleo1') ? data : null)
-        if (address && address.startsWith('aleo1')) {
-          clearTimeout(timeout)
-          window.removeEventListener('shield_connect', windowHandler)
-          window.removeEventListener('shield_account', windowHandler)
-          window.removeEventListener('message', windowHandler)
-          resolve(address)
-        }
-      }
-      window.addEventListener('shield_connect', windowHandler)
-      window.addEventListener('shield_account', windowHandler)
-      window.addEventListener('message', windowHandler)
-
-      // TEMPORARY: log ALL events Shield emits — remove after event name confirmed
-      const allHandler = (eventName: string) => (data: any) => {
-        console.log(`SHIELD EVENT [${eventName}]:`, data)
-      }
-      possibleEvents.forEach(evt => {
-        window.shield?.on?.(evt, allHandler(evt))
-        try {
-          (window.shield as any)?.eventEmitter?.on(evt, allHandler(evt))
-        } catch {}
-      })
-    })
-
-    // ── Call connect() — always throws "Invalid connect payload", that's OK ──
-    setState('POLLING')
-    try {
-      await window.shield.connect()
-    } catch {
-      // Expected — Shield fires events after throwing
-    }
-
-    // ── Wait for an address event ────────────────────────────────────────────
-    try {
-      const address = await addressPromise
-      setPublicKey(address)
-      setState('CONNECTED')
-    } catch {
-      // No event received — show ERROR with manual address fallback
       setState('ERROR')
       setErrorMessage(
-        'Shield Wallet did not emit an account event. Paste your Aleo address below, or use Demo Mode.'
+        'Shield Wallet did not return a public key. Paste your Aleo address below, or use Demo Mode.'
       )
     }
   }, [])
@@ -188,11 +144,12 @@ export function useShieldWallet(): ShieldWallet {
     setPublicKey(null)
     setState('IDLE')
     setErrorMessage(null)
+    try { (window.shield as any)?.disconnect?.() } catch {}
   }, [])
 
   const enterDemoMode = useCallback(() => {
     setState('DEMO_MODE')
-    setPublicKey('aleo1demo...xyz')
+    setPublicKey('aleo1demo000000000000000000000000000000000000000000000000000000000')
     setErrorMessage(null)
   }, [])
 
