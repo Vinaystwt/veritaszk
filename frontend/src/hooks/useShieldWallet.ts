@@ -73,12 +73,16 @@ export function useShieldWallet(): ShieldWallet {
     try {
       // Root cause fix: connect() requires (network, decryptPermission, programs)
       // and returns {address: "aleo1..."} directly as the return value.
-      // Calling with no args throws "Invalid connect payload" and returns nothing.
-      const result = await (window.shield as any).connect(
-        'testnet',
-        'onChainHistory',
-        PROGRAMS
-      )
+      // 30s timeout gives the user time to unlock Shield Wallet if it is locked —
+      // Shield should show its unlock popup and resolve once the password is entered.
+      const result = await Promise.race([
+        (window.shield as any).connect(
+          'testnet',
+          'onChainHistory',
+          PROGRAMS
+        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000)),
+      ])
 
       // Primary: address comes back as return value
       const address =

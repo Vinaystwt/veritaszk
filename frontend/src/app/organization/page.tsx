@@ -147,9 +147,10 @@ function Step1({ wallet, isDemo, onComplete }: {
 }
 
 // ─── Step 2: Proof Submission ────────────────────────────────────────────────
-function Step2({ orgName, isDemo, onComplete }: {
+function Step2({ orgName, isDemo, publicKey, onComplete }: {
   orgName: string
   isDemo: boolean
+  publicKey: string | null
   onComplete: (data: { tier: 1|2|3|4; ratio: number; commitment: string; txHash: string; expiryBlock: number; orgCommitmentField: string }) => void
 }) {
   const [assets, setAssets] = useState({ native: isDemo ? '3200000' : '', stablecoin: isDemo ? '800000' : '', btc: isDemo ? '200000' : '', other: isDemo ? '300000' : '' })
@@ -180,31 +181,67 @@ function Step2({ orgName, isDemo, onComplete }: {
         await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
         onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks, orgCommitmentField: '' })
       } else {
-        const assetBundle = { native_credits: Math.floor(parseFloat(assets.native) || 0), stablecoin_usd: Math.floor(parseFloat(assets.stablecoin) || 0), btc_equivalent: Math.floor(parseFloat(assets.btc) || 0), other_assets: Math.floor(parseFloat(assets.other) || 0) }
-        const nonce = Math.floor(Math.random() * 1_000_000_000)
-        // org_commitment: deterministic large field value (timestamp + random for uniqueness)
+        // Fix D — balance check before submitting
+        try {
+          const balanceRes = await fetch(
+            `https://api.explorer.provable.com/v1/testnet/account/${publicKey}/balance`
+          )
+          const balanceData = await balanceRes.json()
+          const microcredits = balanceData?.result || 0
+          if (microcredits < 10000) {
+            setError(`Insufficient balance. Need at least 0.01 ALEO credits. Current: ${microcredits} microcredits. Get testnet credits from the Aleo faucet.`)
+            setSubmitting(false)
+            return
+          }
+        } catch {
+          // Balance check failed — proceed anyway, Shield will reject if insufficient
+        }
+
+        // Fix B — build params as a named variable so we can log and inspect
+        const nativeCredits = Math.floor(parseFloat(assets.native) || 0)
+        const stablecoinUsd = Math.floor(parseFloat(assets.stablecoin) || 0)
+        const btcEquivalent = Math.floor(parseFloat(assets.btc) || 0)
+        const otherAssets = Math.floor(parseFloat(assets.other) || 0)
+        const totalLiabilities = Math.floor(totalLiab)
+        const calculatedTier = tierResult.tier
+        const nonce = Math.floor(Math.random() * 999_999_999_999_999)
         const orgCommitmentField = `${Date.now()}${Math.floor(Math.random() * 1_000_000)}`
-        const txResult = await (window.shield as any).executeTransaction({
+
+        const params = {
           programId: 'veritaszk_threshold.aleo',
           functionName: 'prove_threshold',
           inputs: [
-            `{native_credits: ${assetBundle.native_credits}u64, stablecoin_usd: ${assetBundle.stablecoin_usd}u64, btc_equivalent: ${assetBundle.btc_equivalent}u64, other_assets: ${assetBundle.other_assets}u64}`,
-            `${Math.floor(totalLiab)}u64`,
+            // Input 1: AssetBundle struct — Leo struct literal syntax, no quotes on keys
+            `{native_credits: ${nativeCredits}u64, stablecoin_usd: ${stablecoinUsd}u64, btc_equivalent: ${btcEquivalent}u64, other_assets: ${otherAssets}u64}`,
+            // Input 2: liabilities u64
+            `${totalLiabilities}u64`,
+            // Input 3: org_commitment field
             `${orgCommitmentField}field`,
+            // Input 4: proof_nonce field
             `${nonce}field`,
-            `${tierResult.tier}u8`,
+            // Input 5: tier_target u8 (public)
+            `${calculatedTier}u8`,
           ],
           fee: 10000,
           feePrivate: false,
-        })
+        }
+
+        console.log('=== VERITASZK executeTransaction PAYLOAD ===')
+        console.log(JSON.stringify(params, null, 2))
+        console.log('============================================')
+
+        const txResult = await (window.shield as any).executeTransaction(params)
         const txHash = txResult?.transactionId || txResult?.id || txResult?.txId || ''
         if (!txHash) throw new Error('Transaction submitted but no transaction ID returned')
         const commitment = `thr_${txHash.slice(0, 12)}`
         await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
         onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks, orgCommitmentField })
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Transaction failed')
+    } catch (e: any) {
+      // Fix C — show the actual Shield Wallet error, not a generic message
+      const errorMsg = e?.message || e?.toString() || 'Transaction failed'
+      console.error('executeTransaction full error:', e)
+      setError(errorMsg)
     } finally {
       setSubmitting(false)
     }
@@ -658,7 +695,7 @@ function WalletGate({ wallet }: { wallet: ReturnType<typeof useShieldWallet> }) 
 
   const stateConfig = {
     IDLE:          { msg: '', sub: '' },
-    CONNECTING:    { msg: 'Opening Shield Wallet...', sub: 'Please approve the connection in your extension.' },
+    CONNECTING:    { msg: 'Opening Shield Wallet...', sub: 'If your wallet is locked, enter your password in the Shield popup. Waiting up to 30 seconds…' },
     ERROR:         { msg: 'Connection failed', sub: errorMessage ?? 'Please try again.' },
     NOT_INSTALLED: { msg: 'Shield Wallet not detected', sub: 'Install the Shield Wallet extension to connect.' },
     CONNECTED:     { msg: '', sub: '' },
@@ -885,6 +922,7 @@ function OrganizationContent() {
                     <Step2
                       orgName={orgData.orgName}
                       isDemo={isDemo}
+                      publicKey={wallet.publicKey}
                       onComplete={data => { setProofData(data); setCurrentStep(3) }}
                     />
                   </motion.div>
