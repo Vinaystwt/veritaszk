@@ -200,9 +200,11 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
         console.log('orgCommitmentField:', orgCommitmentField, 'safe:', Number.isSafeInteger(orgCommitmentField))
         console.log('proofNonceField:', proofNonceField, 'safe:', Number.isSafeInteger(proofNonceField))
 
+        // Shield Wallet Zod schema requires: program, function, inputs, network
+        // (NOT programId / functionName / feePrivate — those are wrong key names)
         const params = {
-          programId: 'veritaszk_threshold.aleo',
-          functionName: 'prove_threshold',
+          program: 'veritaszk_threshold.aleo',
+          function: 'prove_threshold',
           inputs: [
             // Input 1: AssetBundle struct — Leo struct literal syntax, no quotes on keys
             `{native_credits: ${nc}u64, stablecoin_usd: ${su}u64, btc_equivalent: ${btc}u64, other_assets: ${other}u64}`,
@@ -216,7 +218,8 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
             `${calculatedTier}u8`,
           ],
           fee: 10000,
-          feePrivate: false,
+          network: 'testnet',
+          privateFee: false,
         }
 
         console.log('=== VERITASZK executeTransaction PAYLOAD ===')
@@ -487,11 +490,12 @@ function Step3({ orgName, tier, ratio, commitment, txHash, expiryBlock, isDemo, 
         // revoke_proof(public org_commitment: field) — single public input, no private record needed
         if (!orgCommitmentField) throw new Error('Cannot revoke: org commitment field not available')
         const revokeResult = await (window.shield as any).executeTransaction({
-          programId: 'veritaszk_core.aleo',
-          functionName: 'revoke_proof',
+          program: 'veritaszk_core.aleo',
+          function: 'revoke_proof',
           inputs: [`${orgCommitmentField}field`],
           fee: 10000,
-          feePrivate: false,
+          network: 'testnet',
+          privateFee: false,
         })
         const revokeTxHash = revokeResult?.transactionId || revokeResult?.id || revokeResult?.txId || ''
         if (!revokeTxHash) throw new Error('Revoke transaction returned no transaction ID')
