@@ -181,23 +181,7 @@ function Step2({ orgName, isDemo, publicKey, onComplete }: {
         await registerProof({ commitment, orgName, tier: tierResult.tier, coverageRatio: tierResult.ratio, assets: totalAssets, liabilities: totalLiab })
         onComplete({ tier: tierResult.tier, ratio: tierResult.ratio, commitment, txHash, expiryBlock: baseBlock + blocks, orgCommitmentField: '' })
       } else {
-        // Fix D — balance check before submitting
-        try {
-          const balanceRes = await fetch(
-            `https://api.explorer.provable.com/v1/testnet/account/${publicKey}/balance`
-          )
-          const balanceData = await balanceRes.json()
-          const microcredits = balanceData?.result || 0
-          if (microcredits < 10000) {
-            setError(`Insufficient balance. Need at least 0.01 ALEO credits. Current: ${microcredits} microcredits. Get testnet credits from the Aleo faucet.`)
-            setSubmitting(false)
-            return
-          }
-        } catch {
-          // Balance check failed — proceed anyway, Shield will reject if insufficient
-        }
-
-        // Fix B — build params with guaranteed positive integers for all Leo inputs
+        // Build params with guaranteed positive integers for all Leo inputs
         // native_credits must be >= 1 (u64 minimum for valid AssetBundle)
         const nc = Math.max(1, Math.floor(Number(assets.native) || 1))
         const su = Math.max(0, Math.floor(Number(assets.stablecoin) || 0))
